@@ -1,0 +1,1744 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#1a1a1a">
+<title>Gilberts at the Brickyard — Indy 500 Tracker</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@600;800;900&family=Manrope:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --cream: #F2EDE0;
+    --cream-2: #EAE3D2;
+    --paper: #FFFFFF;
+    --ink: #14110E;
+    --ink-2: #4A4439;
+    --brick: #B11A24;
+    --brick-dark: #7E0F18;
+    --gold: #E6A82E;
+    --green: #2C7A3F;
+    --yellow-flag: #E8B400;
+    --red-flag: #B11A24;
+    --rule: rgba(20, 17, 14, 0.12);
+    --rule-strong: rgba(20, 17, 14, 0.4);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html, body {
+    background: var(--cream);
+    color: var(--ink);
+    font-family: 'Manrope', -apple-system, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    overscroll-behavior: none;
+  }
+
+  body {
+    background-image:
+      radial-gradient(circle at 20% 0%, rgba(177, 26, 36, 0.04) 0%, transparent 50%),
+      radial-gradient(circle at 80% 100%, rgba(230, 168, 46, 0.06) 0%, transparent 50%);
+    min-height: 100vh;
+    max-width: 720px;
+    margin: 0 auto;
+    padding: 0 0 96px;
+  }
+
+  /* ============ HEADER ============ */
+  .header {
+    padding: 18px 18px 12px;
+    border-bottom: 2px solid var(--ink);
+    background: var(--cream);
+    position: sticky;
+    top: 0;
+    z-index: 50;
+  }
+  .header-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+  }
+  .brand {
+    font-family: 'Big Shoulders Display', sans-serif;
+    font-weight: 900;
+    font-size: 30px;
+    letter-spacing: 0.01em;
+    line-height: 0.95;
+    text-transform: uppercase;
+    flex: 1;
+    min-width: 0;
+  }
+  .brand .small {
+    display: block;
+    font-family: 'Manrope', sans-serif;
+    font-size: 9.5px;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    color: var(--brick);
+    margin-bottom: 3px;
+    text-transform: uppercase;
+  }
+
+  .header-controls {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+  }
+  .mute-btn {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    border: 1.5px solid var(--ink);
+    background: var(--paper);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    padding: 0;
+    transition: transform 0.1s;
+  }
+  .mute-btn:active { transform: scale(0.92); }
+
+  .status-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 10px;
+    border: 1.5px solid var(--ink);
+    border-radius: 999px;
+    background: var(--paper);
+    font-family: 'JetBrains Mono', monospace;
+    font-weight: 700;
+    font-size: 10px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+  .status-dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: var(--ink-2);
+  }
+  .status-dot.live {
+    background: var(--green);
+    box-shadow: 0 0 0 0 rgba(44, 122, 63, 0.7);
+    animation: pulse 1.6s infinite;
+  }
+  .status-dot.yellow { background: var(--yellow-flag); }
+  .status-dot.red    { background: var(--red-flag); animation: pulse 0.8s infinite; }
+  @keyframes pulse {
+    0%   { box-shadow: 0 0 0 0 currentColor; opacity: 1; }
+    70%  { box-shadow: 0 0 0 8px transparent; opacity: 0.85; }
+    100% { box-shadow: 0 0 0 0 transparent; opacity: 1; }
+  }
+
+  .race-meta {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 10px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--ink-2);
+    letter-spacing: 0.04em;
+  }
+  .race-meta .lap-info { font-weight: 700; color: var(--ink); }
+
+  /* ============ TABS ============ */
+  .tabs {
+    display: flex;
+    gap: 4px;
+    padding: 10px 14px 0;
+    background: var(--cream);
+    border-bottom: 1px solid var(--rule);
+  }
+  .tab {
+    flex: 1;
+    padding: 10px 6px;
+    background: transparent;
+    border: none;
+    border-bottom: 3px solid transparent;
+    color: var(--ink-2);
+    font-family: 'Big Shoulders Display', sans-serif;
+    font-weight: 800;
+    font-size: 15px;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: color 0.15s, border-color 0.15s;
+  }
+  .tab.active {
+    color: var(--ink);
+    border-bottom-color: var(--brick);
+  }
+  .tab.admin-tab { flex: 0 0 auto; padding: 10px 12px; color: var(--brick); }
+
+  /* ============ COMMON ============ */
+  .view { display: none; padding: 14px; }
+  .view.active { display: block; }
+
+  .section-title {
+    font-family: 'Big Shoulders Display', sans-serif;
+    font-weight: 800;
+    font-size: 13px;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--ink-2);
+    margin: 18px 0 8px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .section-title::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--rule);
+  }
+
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 10px 14px;
+    border: 1.5px solid var(--ink);
+    background: var(--paper);
+    color: var(--ink);
+    font-family: 'Manrope', sans-serif;
+    font-weight: 700;
+    font-size: 13px;
+    cursor: pointer;
+    border-radius: 4px;
+    transition: transform 0.1s, background 0.15s;
+  }
+  .btn:active { transform: translateY(1px); }
+  .btn.primary { background: var(--ink); color: var(--cream); }
+  .btn.brick { background: var(--brick); color: white; border-color: var(--brick); }
+  .btn.small { padding: 6px 10px; font-size: 11px; }
+  .btn.ghost { background: transparent; }
+  .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  /* ============ AVATAR ============ */
+  .avatar {
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    background: var(--ink-2);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Big Shoulders Display', sans-serif;
+    font-weight: 900;
+    font-size: 14px;
+    letter-spacing: 0.02em;
+    position: relative;
+    flex-shrink: 0;
+    box-shadow: inset 0 0 0 2px rgba(255,255,255,0.15);
+  }
+  .avatar.small { width: 30px; height: 30px; font-size: 11px; }
+  .avatar.big { width: 80px; height: 80px; font-size: 28px; }
+  .avatar .flag {
+    position: absolute;
+    bottom: -3px;
+    right: -4px;
+    font-size: 13px;
+    line-height: 1;
+    filter: drop-shadow(0 1px 1px rgba(0,0,0,0.3));
+  }
+  .avatar.big .flag { font-size: 22px; bottom: -4px; right: -6px; }
+  .avatar.small .flag { font-size: 10px; bottom: -2px; right: -3px; }
+  .avatar .car-badge {
+    position: absolute;
+    top: -4px;
+    right: -4px;
+    background: var(--gold);
+    color: var(--ink);
+    font-family: 'JetBrains Mono', monospace;
+    font-weight: 800;
+    font-size: 9px;
+    padding: 1px 4px;
+    border-radius: 8px;
+    border: 1.5px solid var(--ink);
+    line-height: 1;
+  }
+
+  /* ============ LEADERBOARD ============ */
+  .driver-row {
+    display: grid;
+    grid-template-columns: 32px 38px 1fr auto;
+    align-items: center;
+    gap: 10px;
+    padding: 10px;
+    background: var(--paper);
+    border: 1px solid var(--rule);
+    border-radius: 8px;
+    margin-bottom: 6px;
+    transition: background 0.3s, border-color 0.3s, transform 0.15s;
+    cursor: pointer;
+  }
+  .driver-row:active { transform: scale(0.99); }
+  .driver-row.moved-up { animation: flashUp 1.2s ease-out; }
+  .driver-row.moved-down { animation: flashDown 1.2s ease-out; }
+  @keyframes flashUp {
+    0%   { background: #E8F5E9; }
+    100% { background: var(--paper); }
+  }
+  @keyframes flashDown {
+    0%   { background: #FFEBEE; }
+    100% { background: var(--paper); }
+  }
+  .driver-row.is-pick {
+    border-color: var(--gold);
+    border-width: 2px;
+    box-shadow: 0 1px 0 var(--gold);
+  }
+  .driver-row.out { opacity: 0.45; }
+
+  .pos {
+    font-family: 'JetBrains Mono', monospace;
+    font-weight: 800;
+    font-size: 17px;
+    text-align: right;
+    color: var(--ink);
+    font-variant-numeric: tabular-nums;
+  }
+  .pos.top3 { color: var(--brick); }
+  .pos-change {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    font-weight: 700;
+    text-align: center;
+    line-height: 1;
+  }
+  .pos-change.up { color: var(--green); }
+  .pos-change.down { color: var(--brick); }
+
+  .car-num {
+    font-family: 'JetBrains Mono', monospace;
+    font-weight: 800;
+    font-size: 11px;
+    text-align: center;
+    padding: 3px 4px;
+    background: var(--ink);
+    color: var(--cream);
+    border-radius: 3px;
+    letter-spacing: 0.02em;
+    min-width: 24px;
+  }
+
+  .pos.bumped { animation: wiggle 0.5s; }
+  @keyframes wiggle {
+    0%, 100% { transform: rotate(0); }
+    25% { transform: rotate(-8deg) scale(1.1); }
+    75% { transform: rotate(8deg) scale(1.1); }
+  }
+
+  .driver-info { min-width: 0; }
+  .driver-name {
+    font-weight: 700;
+    font-size: 14px;
+    color: var(--ink);
+    line-height: 1.2;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .driver-team {
+    font-size: 10.5px;
+    color: var(--ink-2);
+    margin-top: 1px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .driver-meta {
+    text-align: right;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10.5px;
+    color: var(--ink-2);
+    font-variant-numeric: tabular-nums;
+    line-height: 1.25;
+  }
+  .driver-meta .gap { font-weight: 700; color: var(--ink); font-size: 11.5px; }
+  .driver-meta .tag {
+    display: inline-block;
+    padding: 1px 5px;
+    border-radius: 3px;
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    margin-top: 2px;
+  }
+  .tag.pit { background: var(--yellow-flag); color: var(--ink); }
+  .tag.out { background: var(--ink-2); color: var(--cream); }
+  .tag.pick { background: var(--gold); color: var(--ink); }
+
+  /* ============ FAMILY VIEW ============ */
+  .family-card {
+    background: var(--paper);
+    border: 1.5px solid var(--ink);
+    border-radius: 8px;
+    padding: 12px 14px;
+    margin-bottom: 12px;
+    position: relative;
+    overflow: hidden;
+  }
+  .family-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; bottom: 0;
+    width: 4px;
+    background: var(--brick);
+  }
+  .family-card.best::before { background: var(--gold); }
+  .family-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 8px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--rule);
+  }
+  .family-name {
+    font-family: 'Big Shoulders Display', sans-serif;
+    font-weight: 800;
+    font-size: 22px;
+    line-height: 1;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .crown { font-size: 16px; }
+  .family-score {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--ink-2);
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-align: right;
+  }
+  .family-score .big {
+    display: block;
+    font-size: 22px;
+    color: var(--ink);
+    font-weight: 800;
+    margin-top: 1px;
+    line-height: 1;
+  }
+
+  .pick-list { display: grid; gap: 5px; }
+  .pick-row {
+    display: grid;
+    grid-template-columns: 36px 32px 1fr auto;
+    gap: 10px;
+    align-items: center;
+    padding: 7px 9px;
+    border-radius: 6px;
+    background: var(--cream-2);
+    font-size: 12px;
+  }
+  .pick-row .p-pos {
+    font-family: 'JetBrains Mono', monospace;
+    font-weight: 800;
+    font-size: 15px;
+    text-align: center;
+    color: var(--ink);
+  }
+  .pick-row .p-pos.dnf { color: var(--ink-2); text-decoration: line-through; }
+  .pick-row .p-name {
+    font-weight: 700;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 13px;
+  }
+  .pick-row .p-name .p-flag { margin-right: 4px; }
+  .pick-row .p-change {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    font-weight: 800;
+    text-align: right;
+    min-width: 36px;
+  }
+  .p-change.up { color: var(--green); }
+  .p-change.down { color: var(--brick); }
+  .p-change.same { color: var(--ink-2); }
+
+  /* ============ SETUP VIEW ============ */
+  .setup-intro {
+    font-size: 13px;
+    color: var(--ink-2);
+    line-height: 1.5;
+    margin-bottom: 14px;
+  }
+
+  .input {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1.5px solid var(--ink);
+    background: var(--paper);
+    border-radius: 4px;
+    font-family: 'Manrope', sans-serif;
+    font-size: 14px;
+    color: var(--ink);
+  }
+  .input:focus { outline: 2px solid var(--brick); outline-offset: -2px; }
+
+  .add-member-row {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 16px;
+  }
+  .add-member-row .input { flex: 1; }
+
+  .member-edit-card {
+    background: var(--paper);
+    border: 1.5px solid var(--ink);
+    border-radius: 8px;
+    padding: 12px;
+    margin-bottom: 10px;
+  }
+  .member-edit-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+    gap: 8px;
+  }
+  .member-edit-head .name {
+    font-family: 'Big Shoulders Display', sans-serif;
+    font-weight: 800;
+    font-size: 20px;
+    text-transform: uppercase;
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .pick-count {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    font-weight: 700;
+    color: var(--ink-2);
+    padding: 3px 7px;
+    border: 1px solid var(--rule-strong);
+    border-radius: 3px;
+  }
+  .pick-count.ok { color: var(--green); border-color: var(--green); }
+  .pick-count.under { color: var(--brick); border-color: var(--brick); }
+
+  .driver-picker {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 6px;
+    max-height: 320px;
+    overflow-y: auto;
+    padding: 6px;
+    background: var(--cream-2);
+    border-radius: 6px;
+  }
+  .picker-driver {
+    display: grid;
+    grid-template-columns: 28px 1fr;
+    align-items: center;
+    gap: 6px;
+    padding: 8px;
+    background: var(--paper);
+    border: 1.5px solid transparent;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 12px;
+    text-align: left;
+    color: var(--ink);
+    transition: transform 0.1s, border-color 0.15s;
+    min-height: 44px;
+  }
+  .picker-driver:active { transform: scale(0.96); }
+  .picker-driver:hover { border-color: var(--ink); }
+  .picker-driver.selected {
+    background: linear-gradient(135deg, var(--gold) 0%, #F2C94C 100%);
+    border-color: var(--ink);
+    box-shadow: 0 2px 0 var(--ink);
+  }
+  .picker-driver .pp {
+    font-family: 'JetBrains Mono', monospace;
+    font-weight: 800;
+    font-size: 13px;
+    color: var(--ink);
+    text-align: center;
+    background: var(--cream-2);
+    border-radius: 4px;
+    padding: 4px 0;
+  }
+  .picker-driver.selected .pp { background: rgba(0,0,0,0.15); }
+  .picker-driver .pn-wrap {
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+  }
+  .picker-driver .pn {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-weight: 700;
+    font-size: 11.5px;
+    line-height: 1.15;
+  }
+  .picker-driver .pn-sub {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    color: var(--ink-2);
+    font-weight: 600;
+  }
+  .picker-driver.selected .pn-sub { color: rgba(0,0,0,0.6); }
+
+  /* ============ ALERTS ============ */
+  .alerts-stack {
+    position: fixed;
+    bottom: 80px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: calc(100% - 28px);
+    max-width: 460px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    pointer-events: none;
+    z-index: 100;
+  }
+  .alert {
+    background: var(--ink);
+    color: var(--cream);
+    padding: 10px 14px;
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 600;
+    border-left: 4px solid var(--gold);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+    animation: slideUp 0.3s, fadeOut 0.4s 5.5s forwards;
+    pointer-events: auto;
+  }
+  .alert.brick { border-left-color: var(--brick); }
+  .alert.green { border-left-color: var(--green); }
+  @keyframes slideUp {
+    from { transform: translateY(20px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+  }
+  @keyframes fadeOut {
+    to { opacity: 0; transform: translateY(-10px); }
+  }
+
+  /* ============ EMPTY / LOADING ============ */
+  .empty-state {
+    text-align: center;
+    padding: 40px 20px;
+    color: var(--ink-2);
+  }
+  .empty-state h3 {
+    font-family: 'Big Shoulders Display', sans-serif;
+    font-weight: 800;
+    font-size: 24px;
+    color: var(--ink);
+    text-transform: uppercase;
+    margin-bottom: 6px;
+  }
+  .empty-state p { font-size: 13px; line-height: 1.5; margin-bottom: 14px; }
+
+  .loading-bar {
+    height: 2px;
+    background: linear-gradient(90deg, var(--brick) 0%, var(--gold) 50%, var(--brick) 100%);
+    background-size: 200% 100%;
+    animation: loadingShift 1.5s linear infinite;
+  }
+  @keyframes loadingShift {
+    0% { background-position: 0% 0; }
+    100% { background-position: -200% 0; }
+  }
+
+  /* ============ FOOTER NOTE ============ */
+  .footer-note {
+    margin-top: 24px;
+    padding: 12px 14px;
+    font-size: 10.5px;
+    color: var(--ink-2);
+    text-align: center;
+    line-height: 1.5;
+    border-top: 1px solid var(--rule);
+  }
+
+  /* ============ MODAL ============ */
+  .modal-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(20, 17, 14, 0.7);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 200;
+    padding: 18px;
+  }
+  .modal-backdrop.show { display: flex; }
+  .modal {
+    background: var(--cream);
+    border: 2px solid var(--ink);
+    border-radius: 8px;
+    width: 100%;
+    max-width: 440px;
+    padding: 18px;
+  }
+  .modal h3 {
+    font-family: 'Big Shoulders Display', sans-serif;
+    font-weight: 800;
+    font-size: 22px;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+  .modal p { font-size: 13px; line-height: 1.5; margin-bottom: 14px; color: var(--ink-2); }
+  .modal-actions { display: flex; gap: 8px; justify-content: flex-end; }
+
+  /* ============ DRIVER DETAIL MODAL ============ */
+  .driver-detail {
+    background: var(--cream);
+    border: 2px solid var(--ink);
+    border-radius: 10px;
+    width: 100%;
+    max-width: 440px;
+    overflow: hidden;
+  }
+  .driver-detail-hero {
+    padding: 20px 18px 16px;
+    background: linear-gradient(135deg, var(--team-bg) 0%, var(--team-bg-2, var(--team-bg)) 100%);
+    color: white;
+    display: flex;
+    gap: 14px;
+    align-items: center;
+    position: relative;
+    overflow: hidden;
+  }
+  .driver-detail-hero::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image:
+      repeating-linear-gradient(45deg, transparent 0 12px, rgba(255,255,255,0.04) 12px 13px);
+    pointer-events: none;
+  }
+  .driver-detail-hero .text { flex: 1; min-width: 0; }
+  .driver-detail-hero .name {
+    font-family: 'Big Shoulders Display', sans-serif;
+    font-weight: 900;
+    font-size: 26px;
+    line-height: 1;
+    text-transform: uppercase;
+    letter-spacing: 0.01em;
+  }
+  .driver-detail-hero .sub {
+    margin-top: 6px;
+    font-size: 12px;
+    opacity: 0.85;
+    font-weight: 600;
+  }
+  .driver-detail-body {
+    padding: 16px 18px 18px;
+    background: var(--paper);
+  }
+  .stat-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+    margin-bottom: 14px;
+  }
+  .stat {
+    padding: 10px;
+    background: var(--cream-2);
+    border-radius: 6px;
+  }
+  .stat .label {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--ink-2);
+    font-weight: 700;
+    margin-bottom: 3px;
+  }
+  .stat .value {
+    font-family: 'Big Shoulders Display', sans-serif;
+    font-weight: 800;
+    font-size: 20px;
+    color: var(--ink);
+    line-height: 1;
+  }
+  .stat .value.small { font-size: 14px; }
+  .stat.gold {
+    background: linear-gradient(135deg, var(--gold) 0%, #F2C94C 100%);
+    color: var(--ink);
+  }
+  .stat.gold .label { color: rgba(0,0,0,0.6); }
+
+  .pickers-row {
+    margin-top: 10px;
+    padding: 10px;
+    background: var(--cream-2);
+    border-radius: 6px;
+    font-size: 12px;
+    color: var(--ink-2);
+  }
+  .pickers-row .pickers-names {
+    font-weight: 700;
+    color: var(--ink);
+    margin-left: 4px;
+  }
+
+  /* ============ CONFETTI ============ */
+  .confetti-piece {
+    position: fixed;
+    width: 10px;
+    height: 14px;
+    pointer-events: none;
+    z-index: 300;
+    border-radius: 2px;
+    animation: confettiFall 1.8s ease-out forwards;
+  }
+  @keyframes confettiFall {
+    0%   { transform: translate(0, 0) rotate(0deg); opacity: 1; }
+    100% { transform: translate(var(--dx, 0), var(--dy, 400px)) rotate(var(--rot, 720deg)); opacity: 0; }
+  }
+
+  /* ============ COUNTDOWN BANNER ============ */
+  .countdown-banner {
+    background: linear-gradient(135deg, var(--brick) 0%, var(--brick-dark) 100%);
+    color: white;
+    padding: 14px 16px;
+    margin-bottom: 14px;
+    border-radius: 10px;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+  }
+  .countdown-banner::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image: repeating-linear-gradient(
+      90deg,
+      transparent 0 14px,
+      rgba(255,255,255,0.08) 14px 16px
+    );
+  }
+  .countdown-banner .label {
+    font-family: 'Manrope', sans-serif;
+    font-size: 10px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    opacity: 0.85;
+    font-weight: 700;
+    position: relative;
+  }
+  .countdown-banner .time {
+    font-family: 'Big Shoulders Display', sans-serif;
+    font-weight: 900;
+    font-size: 38px;
+    line-height: 1;
+    margin-top: 4px;
+    letter-spacing: 0.02em;
+    position: relative;
+  }
+
+  /* ============ ANIMATIONS ============ */
+  .pulse-once { animation: pulseOnce 0.8s ease-out; }
+  @keyframes pulseOnce {
+    0%   { transform: scale(1); }
+    50%  { transform: scale(1.04); background: rgba(230, 168, 46, 0.2); }
+    100% { transform: scale(1); }
+  }
+
+  .driver-row.leader {
+    border-color: var(--gold);
+    border-width: 2px;
+    background: linear-gradient(90deg, rgba(230, 168, 46, 0.08) 0%, transparent 60%);
+  }
+
+  .view.active { animation: viewIn 0.25s ease-out; }
+  @keyframes viewIn {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* ============ RACE CONTROL (admin) ============ */
+  .mode-row { display: flex; gap: 6px; margin-bottom: 14px; }
+  .mode-btn {
+    flex: 1; padding: 12px 6px; border: 1.5px solid var(--ink); background: var(--paper);
+    border-radius: 6px; cursor: pointer; font-family: 'Big Shoulders Display', sans-serif;
+    font-weight: 800; font-size: 14px; text-transform: uppercase; letter-spacing: 0.04em;
+  }
+  .mode-btn.active { background: var(--ink); color: var(--cream); }
+  .mode-btn .sub { display:block; font-family:'Manrope'; font-size:9px; font-weight:600; letter-spacing:0; text-transform:none; margin-top:2px; opacity:0.7; }
+  .rc-banner { font-size: 12px; line-height:1.5; background: var(--cream-2); border-radius:6px; padding:10px 12px; margin-bottom:14px; color: var(--ink-2); }
+  .rc-controls { display:flex; gap:6px; flex-wrap:wrap; margin-bottom:12px; align-items:center; }
+  .rc-controls label { font-size:11px; font-weight:700; color:var(--ink-2); }
+  .rc-num { width:64px; }
+  .order-list { display:grid; gap:4px; }
+  .order-item {
+    display:grid; grid-template-columns: 30px 30px 1fr auto auto; gap:8px; align-items:center;
+    background: var(--paper); border:1px solid var(--rule); border-radius:6px; padding:6px 8px; font-size:13px;
+  }
+  .order-item .oi-pos { font-family:'JetBrains Mono'; font-weight:800; }
+  .order-item .oi-car { font-family:'JetBrains Mono'; font-weight:800; background:var(--ink); color:var(--cream); border-radius:3px; text-align:center; padding:2px 0; font-size:11px; }
+  .order-item .oi-name { font-weight:700; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .oi-btn { width:30px; height:30px; border:1px solid var(--ink); background:var(--paper); border-radius:5px; cursor:pointer; font-weight:800; }
+  .oi-btn:active { transform: scale(0.94); }
+</style>
+</head>
+<body>
+
+<header class="header">
+  <div class="header-top">
+    <div class="brand">
+      <span class="small">Sponsored by Gilbert Racing</span>
+      The Brickyard
+    </div>
+    <div class="header-controls">
+      <button class="mute-btn" id="adminBtn" title="Race Control">⚙️</button>
+      <button class="mute-btn" id="muteBtn" title="Toggle sound">
+        <span id="muteIcon">🔊</span>
+      </button>
+      <span class="status-pill" id="statusPill">
+        <span class="status-dot" id="statusDot"></span>
+        <span id="statusText">Loading…</span>
+      </span>
+    </div>
+  </div>
+  <div class="race-meta">
+    <span id="raceMeta">110th Indy 500 · May 24</span>
+    <span class="lap-info" id="lapInfo">— / 200</span>
+  </div>
+</header>
+
+<nav class="tabs">
+  <button class="tab active" data-view="family">Family</button>
+  <button class="tab" data-view="leaderboard">Leaderboard</button>
+  <button class="tab" data-view="setup">Picks</button>
+  <button class="tab admin-tab" data-view="admin" id="adminTab" style="display:none;">🏁 Control</button>
+</nav>
+
+<!-- ============ FAMILY VIEW ============ -->
+<main class="view active" id="view-family">
+  <div id="familyContent"></div>
+</main>
+
+<!-- ============ LEADERBOARD VIEW ============ -->
+<main class="view" id="view-leaderboard">
+  <div id="leaderboardContent"></div>
+</main>
+
+<!-- ============ SETUP VIEW ============ -->
+<main class="view" id="view-setup">
+  <p class="setup-intro">
+    Add each family member, then tap to pick <strong>3 or more</strong> drivers. Two people can share
+    drivers — but <strong>no two people can pick the exact same set</strong>, so make at least one swap.
+    Everyone edits the same shared board, so set up from any phone.
+  </p>
+
+  <div class="add-member-row">
+    <input type="text" class="input" id="newMemberName" placeholder="Add family member (e.g., Mom)" maxlength="20">
+    <button class="btn primary" id="addMemberBtn">Add</button>
+  </div>
+
+  <div id="membersList"></div>
+
+  <div style="margin-top: 20px; text-align: center;">
+    <button class="btn ghost small" id="resetAllBtn">Reset everything</button>
+  </div>
+
+  <p class="footer-note" id="footerNote">
+    Loading data source…
+  </p>
+</main>
+
+<!-- ============ RACE CONTROL VIEW (admin) ============ -->
+<main class="view" id="view-admin">
+  <div class="rc-banner" id="rcBanner"></div>
+  <div class="section-title">Data Mode</div>
+  <div class="mode-row">
+    <button class="mode-btn" data-mode="sim">Sim<span class="sub">Demo / test</span></button>
+    <button class="mode-btn" data-mode="auto">Auto<span class="sub">Scrape IndyCar</span></button>
+    <button class="mode-btn" data-mode="manual">Manual<span class="sub">You score it</span></button>
+  </div>
+
+  <div id="manualPanel" style="display:none;">
+    <div class="section-title">Race Status</div>
+    <div class="rc-controls">
+      <label>Lap <input type="number" class="input rc-num" id="rcLap" min="0" max="200" value="0"></label>
+      <label>Flag
+        <select class="input" id="rcFlag" style="width:auto;">
+          <option value="green">🟢 Green</option>
+          <option value="yellow">🟡 Yellow</option>
+          <option value="red">🔴 Red</option>
+          <option value="white">⚪ White</option>
+          <option value="checkered">🏁 Checkered</option>
+        </select>
+      </label>
+      <label>State
+        <select class="input" id="rcStatus" style="width:auto;">
+          <option value="pre">Pre</option>
+          <option value="in" selected>Running</option>
+          <option value="post">Finished</option>
+        </select>
+      </label>
+    </div>
+    <div class="section-title">Running Order — tap ▲/▼ to move</div>
+    <div class="order-list" id="orderList"></div>
+    <div style="margin-top:14px; display:flex; gap:8px;">
+      <button class="btn brick" id="rcPush" style="flex:1;">Push to everyone</button>
+    </div>
+    <p class="footer-note">Tip: you only need to keep roughly the top 10–15 accurate. Tap a driver's ▲/▼ to move them; positions below shuffle automatically.</p>
+  </div>
+
+  <div style="margin-top: 24px; text-align:center;">
+    <button class="btn ghost small" id="adminLockBtn">Lock Race Control</button>
+  </div>
+</main>
+
+<div class="alerts-stack" id="alertsStack"></div>
+
+<div class="modal-backdrop" id="modal">
+  <div class="modal">
+    <h3 id="modalTitle">Confirm</h3>
+    <p id="modalBody">Are you sure?</p>
+    <div class="modal-actions">
+      <button class="btn ghost" id="modalCancel">Cancel</button>
+      <button class="btn brick" id="modalOk">Confirm</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-backdrop" id="driverDetailModal">
+  <div class="driver-detail" id="driverDetailCard"></div>
+</div>
+
+<script>
+'use strict';
+
+// ============================================================
+// TEAM COLORS
+// ============================================================
+const TEAM_COLORS = {
+  'Chip Ganassi Racing':     '#C8102E',
+  'Team Penske':             '#0A0A0A',
+  'Andretti Global':         '#1A1F2C',
+  'Arrow McLaren':           '#FF8700',
+  'Ed Carpenter Racing':     '#1B3A78',
+  'A.J. Foyt Racing':        '#9C2C2C',
+  'A.J. Foyt / HMD':         '#9C2C2C',
+  'Meyer Shank Racing':      '#1B998B',
+  'Rahal Letterman Lanigan': '#1E3A8A',
+  'Dale Coyne Racing':       '#D4AF37',
+  'Juncos Hollinger':        '#7C0A02',
+  'Dreyer & Reinbold':       '#7E2E84',
+  'DRR Cusick':              '#5C2E7E',
+};
+
+// ============================================================
+// 2026 INDY 500 STARTING GRID
+// ============================================================
+const STARTING_GRID = [
+  { startPos:  1, num: '10', name: 'Alex Palou',          team: 'Chip Ganassi Racing',     engine: 'Honda', flag: '🇪🇸', country: 'Spain',          indyWins: [2025] },
+  { startPos:  2, num: '20', name: 'Alexander Rossi',     team: 'Ed Carpenter Racing',     engine: 'Chevy', flag: '🇺🇸', country: 'USA',            indyWins: [2016] },
+  { startPos:  3, num: '12', name: 'David Malukas',       team: 'Team Penske',             engine: 'Chevy', flag: '🇺🇸', country: 'USA',            indyWins: [] },
+  { startPos:  4, num: '60', name: 'Felix Rosenqvist',    team: 'Meyer Shank Racing',      engine: 'Honda', flag: '🇸🇪', country: 'Sweden',         indyWins: [] },
+  { startPos:  5, num: '14', name: 'Santino Ferrucci',    team: 'A.J. Foyt Racing',        engine: 'Chevy', flag: '🇺🇸', country: 'USA',            indyWins: [] },
+  { startPos:  6, num: '5',  name: "Pato O'Ward",         team: 'Arrow McLaren',           engine: 'Chevy', flag: '🇲🇽', country: 'Mexico',         indyWins: [] },
+  { startPos:  7, num: '8',  name: 'Kyffin Simpson',      team: 'Chip Ganassi Racing',     engine: 'Honda', flag: '🇰🇾', country: 'Cayman Islands', indyWins: [] },
+  { startPos:  8, num: '23', name: 'Conor Daly',          team: 'Juncos Hollinger',        engine: 'Chevy', flag: '🇺🇸', country: 'USA',            indyWins: [] },
+  { startPos:  9, num: '3',  name: 'Scott McLaughlin',    team: 'Team Penske',             engine: 'Chevy', flag: '🇳🇿', country: 'New Zealand',    indyWins: [] },
+  { startPos: 10, num: '9',  name: 'Scott Dixon',         team: 'Chip Ganassi Racing',     engine: 'Honda', flag: '🇳🇿', country: 'New Zealand',    indyWins: [2008] },
+  { startPos: 11, num: '76', name: 'Rinus VeeKay',        team: 'Dale Coyne Racing',       engine: 'Chevy', flag: '🇳🇱', country: 'Netherlands',    indyWins: [] },
+  { startPos: 12, num: '75', name: 'Takuma Sato',         team: 'Rahal Letterman Lanigan', engine: 'Honda', flag: '🇯🇵', country: 'Japan',          indyWins: [2017, 2020] },
+  { startPos: 13, num: '33', name: 'Ed Carpenter',        team: 'Ed Carpenter Racing',     engine: 'Chevy', flag: '🇺🇸', country: 'USA',            indyWins: [] },
+  { startPos: 14, num: '06', name: 'Helio Castroneves',   team: 'Meyer Shank Racing',      engine: 'Honda', flag: '🇧🇷', country: 'Brazil',         indyWins: [2001, 2002, 2009, 2021] },
+  { startPos: 15, num: '21', name: 'Christian Rasmussen', team: 'Ed Carpenter Racing',     engine: 'Chevy', flag: '🇩🇰', country: 'Denmark',        indyWins: [] },
+  { startPos: 16, num: '66', name: 'Marcus Armstrong',    team: 'Meyer Shank Racing',      engine: 'Honda', flag: '🇳🇿', country: 'New Zealand',    indyWins: [] },
+  { startPos: 17, num: '28', name: 'Marcus Ericsson',     team: 'Andretti Global',         engine: 'Honda', flag: '🇸🇪', country: 'Sweden',         indyWins: [2022] },
+  { startPos: 18, num: '7',  name: 'Christian Lundgaard', team: 'Arrow McLaren',           engine: 'Chevy', flag: '🇩🇰', country: 'Denmark',        indyWins: [] },
+  { startPos: 19, num: '26', name: 'Will Power',          team: 'Andretti Global',         engine: 'Honda', flag: '🇦🇺', country: 'Australia',      indyWins: [2018] },
+  { startPos: 20, num: '6',  name: 'Nolan Siegel',        team: 'Arrow McLaren',           engine: 'Chevy', flag: '🇺🇸', country: 'USA',            indyWins: [] },
+  { startPos: 21, num: '45', name: 'Louis Foster',        team: 'Rahal Letterman Lanigan', engine: 'Honda', flag: '🇬🇧', country: 'UK',             indyWins: [] },
+  { startPos: 22, num: '31', name: 'Ryan Hunter-Reay',    team: 'DRR Cusick',              engine: 'Chevy', flag: '🇺🇸', country: 'USA',            indyWins: [2014] },
+  { startPos: 23, num: '2',  name: 'Josef Newgarden',     team: 'Team Penske',             engine: 'Chevy', flag: '🇺🇸', country: 'USA',            indyWins: [2023, 2024] },
+  { startPos: 24, num: '18', name: 'Romain Grosjean',     team: 'Dale Coyne Racing',       engine: 'Honda', flag: '🇫🇷', country: 'France',         indyWins: [] },
+  { startPos: 25, num: '27', name: 'Kyle Kirkwood',       team: 'Andretti Global',         engine: 'Honda', flag: '🇺🇸', country: 'USA',            indyWins: [] },
+  { startPos: 26, num: '11', name: 'Katherine Legge',     team: 'A.J. Foyt / HMD',         engine: 'Chevy', flag: '🇬🇧', country: 'UK',             indyWins: [] },
+  { startPos: 27, num: '47', name: 'Mick Schumacher',     team: 'Rahal Letterman Lanigan', engine: 'Honda', flag: '🇩🇪', country: 'Germany',        indyWins: [] },
+  { startPos: 28, num: '15', name: 'Graham Rahal',        team: 'Rahal Letterman Lanigan', engine: 'Honda', flag: '🇺🇸', country: 'USA',            indyWins: [] },
+  { startPos: 29, num: '19', name: 'Dennis Hauger',       team: 'Dale Coyne Racing',       engine: 'Honda', flag: '🇳🇴', country: 'Norway',         indyWins: [] },
+  { startPos: 30, num: '51', name: 'Jacob Abel',          team: 'Dale Coyne Racing',       engine: 'Chevy', flag: '🇺🇸', country: 'USA',            indyWins: [] },
+  { startPos: 31, num: '77', name: 'Sting Ray Robb',      team: 'Juncos Hollinger',        engine: 'Chevy', flag: '🇺🇸', country: 'USA',            indyWins: [] },
+  { startPos: 32, num: '4',  name: 'Caio Collet',         team: 'Juncos Hollinger',        engine: 'Chevy', flag: '🇧🇷', country: 'Brazil',         indyWins: [] },
+  { startPos: 33, num: '24', name: 'Jack Harvey',         team: 'Dreyer & Reinbold',       engine: 'Chevy', flag: '🇬🇧', country: 'UK',             indyWins: [] },
+];
+
+function teamColor(team) { return TEAM_COLORS[team] || '#4A4439'; }
+function initials(name) { return name.split(' ').slice(0, 2).map(p => p[0]).join('').toUpperCase(); }
+
+const RACE_START = new Date('2026-05-24T16:45:00Z').getTime(); // ~12:45 PM ET green flag
+const CLIENT_POLL_MS = 8000;
+
+// ============================================================
+// APP STATE
+// ============================================================
+const state = {
+  members: [],
+  race: { mode: 'sim', status: 'pre', flag: null, lap: 0, totalLaps: 200, positions: {}, source: 'none', note: '' },
+  rev: -1,
+  view: 'family',
+  muted: false,
+  leadNum: null,
+  lastPositions: {},
+  admin: false,
+};
+
+// ============================================================
+// API LAYER
+// Uses the Azure backend when one is reachable (full cross-phone
+// sync + live scraping). If no backend answers — opened as a file,
+// on GitHub Pages, or in an in-app preview — it transparently falls
+// back to an ON-DEVICE backend so you can still add members, make
+// picks, and watch a simulated race. On-device data lives only in
+// THIS device's storage (no sync, no live scrape). Deploy server.js
+// for the real thing.
+// ============================================================
+let USE_LOCAL = false;
+const LOCAL_DEMO_PIN = '1911';
+const ADMIN_PIN_KEY = 'brickyard:adminpin';
+function adminPin() { try { return localStorage.getItem(ADMIN_PIN_KEY) || ''; } catch { return ''; } }
+
+// ---- on-device backend (mirrors the server's behaviour, incl. the picks rule) ----
+const LocalBackend = (() => {
+  const LS = 'brickyard:local-state-v1';
+  const VALID = STARTING_GRID.map(d => d.num);
+  const VSET = new Set(VALID);
+  const fresh = () => ({
+    members: [],
+    race: { mode: 'sim', status: 'pre', flag: null, lap: 0, totalLaps: 200, positions: {}, source: 'sim',
+      note: 'On-device demo — picks are saved to this device only. Deploy to Azure for live race + cross-phone sync.' },
+    rev: 0
+  });
+  let st; try { st = JSON.parse(localStorage.getItem(LS)) || fresh(); } catch { st = fresh(); }
+  const save = () => { try { localStorage.setItem(LS, JSON.stringify(st)); } catch {} };
+  const bump = () => { st.rev++; save(); };
+  const nid = () => Math.random().toString(36).slice(2, 9);
+  const norm = (p) => [...new Set((p || []).map(String))].filter(x => VSET.has(x));
+  const key = (p) => [...p].sort().join(',');
+
+  let sim = null;
+  const simReset = () => { sim = { order: [...VALID], lap: 0, out: new Set() }; };
+  function simStep() {
+    if (!sim) simReset();
+    sim.lap = Math.min(200, sim.lap + Math.ceil(Math.random() * 3));
+    for (let k = 0; k < 3; k++) { const i = Math.floor(Math.random() * (sim.order.length - 1)); if (Math.random() < 0.5) { const t = sim.order[i]; sim.order[i] = sim.order[i + 1]; sim.order[i + 1] = t; } }
+    if (Math.random() < 0.25) { const from = 3 + Math.floor(Math.random() * (sim.order.length - 4)); const to = Math.max(0, from - (2 + Math.floor(Math.random() * 4))); const [c] = sim.order.splice(from, 1); sim.order.splice(to, 0, c); }
+    if (Math.random() < 0.03 && sim.out.size < 5) { const c = sim.order[sim.order.length - 1 - sim.out.size]; if (c) sim.out.add(c); }
+    const pit = Math.random() < 0.5 ? sim.order[Math.floor(Math.random() * sim.order.length)] : null;
+    const positions = {};
+    sim.order.forEach((num, idx) => { let status = 'on track'; if (sim.out.has(num)) status = 'out'; else if (num === pit) status = 'pit'; positions[num] = { pos: idx + 1, laps: sim.out.has(num) ? Math.max(0, sim.lap - 10) : sim.lap, gap: idx === 0 ? '—' : '+' + (idx * 0.6 + Math.random()).toFixed(1), status }; });
+    st.race.positions = positions; st.race.lap = sim.lap; st.race.status = sim.lap >= 200 ? 'post' : 'in';
+    st.race.flag = sim.lap >= 200 ? 'checkered' : (Math.random() < 0.08 ? 'yellow' : 'green'); st.race.source = 'sim'; bump();
+  }
+  return {
+    isSim: () => st.race.mode === 'sim',
+    simStep,
+    getState: async () => ({ members: st.members, race: st.race, rev: st.rev }),
+    addMember: async (name) => { name = String(name || '').trim().slice(0, 24); if (!name) return { ok: false, error: 'Name required' }; if (st.members.some(m => m.name.toLowerCase() === name.toLowerCase())) return { ok: false, error: 'That name already exists' }; const member = { id: nid(), name, picks: [] }; st.members.push(member); bump(); return { ok: true, member }; },
+    removeMember: async (id) => { st.members = st.members.filter(m => m.id !== id); bump(); },
+    setPicks: async (id, picks) => { const m = st.members.find(x => x.id === id); if (!m) return { ok: false, status: 404, error: 'Unknown member' }; const clean = norm(picks); if (clean.length >= 3) { const k = key(clean); const clash = st.members.find(x => x.id !== id && x.picks.length >= 3 && key(x.picks) === k); if (clash) return { ok: false, status: 409, error: `Those are the exact same ${clean.length} as ${clash.name}. Swap at least one driver — overlap is fine, but no identical sets.` }; } m.picks = clean; bump(); return { ok: true, status: 200, member: m, complete: clean.length >= 3 }; },
+    setMode: async (mode) => { if (!['sim', 'auto', 'manual'].includes(mode)) return { ok: false, error: 'bad mode' }; st.race.mode = mode; if (mode === 'sim') { simReset(); st.race.status = 'in'; st.race.note = 'On-device demo race running.'; } else if (mode === 'auto') { st.race.note = 'Auto live-scraping needs the deployed Azure server — use Sim or Manual in this on-device demo.'; } else { st.race.note = 'Manual scoring (on-device demo).'; } bump(); return { ok: true, race: st.race }; },
+    pushRace: async (p) => { if (Array.isArray(p.order)) { const positions = {}; p.order.forEach((num, i) => { positions[String(num)] = { pos: i + 1, laps: st.race.lap, gap: i === 0 ? '—' : null, status: 'on track' }; }); st.race.positions = positions; } if (p.lap != null) st.race.lap = +p.lap; if (p.status) st.race.status = p.status; if (p.flag !== undefined) st.race.flag = p.flag; st.race.source = 'manual'; bump(); return { ok: true, race: st.race }; },
+    resetAll: async () => { st = fresh(); save(); }
+  };
+})();
+
+const remoteApi = {
+  async getState() {
+    const r = await fetch('/api/state', { cache: 'no-store' });
+    if (!r.ok) throw new Error('state ' + r.status);
+    return r.json();
+  },
+  async addMember(name) {
+    const r = await fetch('/api/members', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name }) });
+    return r.json().then(j => ({ ok: r.ok, ...j }));
+  },
+  async removeMember(id) {
+    await fetch(`/api/members/${id}/remove`, { method: 'POST' });
+  },
+  async setPicks(id, picks) {
+    const r = await fetch(`/api/members/${id}/picks`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ picks }) });
+    return r.json().then(j => ({ ok: r.ok, status: r.status, ...j }));
+  },
+  async setMode(mode) {
+    const r = await fetch('/api/admin/mode', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Admin-Pin': adminPin() }, body: JSON.stringify({ mode }) });
+    return r.json().then(j => ({ ok: r.ok, ...j }));
+  },
+  async pushRace(payload) {
+    const r = await fetch('/api/admin/race', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Admin-Pin': adminPin() }, body: JSON.stringify(payload) });
+    return r.json().then(j => ({ ok: r.ok, ...j }));
+  },
+  async resetAll() {
+    await fetch('/api/admin/reset', { method: 'POST', headers: { 'X-Admin-Pin': adminPin() } });
+  },
+};
+
+const api = {
+  getState: (...a) => USE_LOCAL ? LocalBackend.getState(...a) : remoteApi.getState(...a),
+  addMember: (...a) => USE_LOCAL ? LocalBackend.addMember(...a) : remoteApi.addMember(...a),
+  removeMember: (...a) => USE_LOCAL ? LocalBackend.removeMember(...a) : remoteApi.removeMember(...a),
+  setPicks: (...a) => USE_LOCAL ? LocalBackend.setPicks(...a) : remoteApi.setPicks(...a),
+  setMode: (...a) => USE_LOCAL ? LocalBackend.setMode(...a) : remoteApi.setMode(...a),
+  pushRace: (...a) => USE_LOCAL ? LocalBackend.pushRace(...a) : remoteApi.pushRace(...a),
+  resetAll: (...a) => USE_LOCAL ? LocalBackend.resetAll(...a) : remoteApi.resetAll(...a),
+};
+
+// ============================================================
+// SOUND EFFECTS — Web Audio API
+// ============================================================
+let audioCtx;
+function getAudioCtx() {
+  if (!audioCtx) { try { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); } catch { return null; } }
+  if (audioCtx.state === 'suspended') audioCtx.resume();
+  return audioCtx;
+}
+function playBoing() {
+  if (state.muted) return; const ctx = getAudioCtx(); if (!ctx) return;
+  const osc = ctx.createOscillator(), gain = ctx.createGain();
+  osc.connect(gain).connect(ctx.destination); osc.type = 'sine'; const t = ctx.currentTime;
+  osc.frequency.setValueAtTime(180, t);
+  osc.frequency.exponentialRampToValueAtTime(720, t + 0.08);
+  osc.frequency.exponentialRampToValueAtTime(540, t + 0.18);
+  osc.frequency.exponentialRampToValueAtTime(640, t + 0.28);
+  osc.frequency.exponentialRampToValueAtTime(580, t + 0.38);
+  gain.gain.setValueAtTime(0.0, t); gain.gain.linearRampToValueAtTime(0.22, t + 0.02);
+  gain.gain.exponentialRampToValueAtTime(0.001, t + 0.5); osc.start(t); osc.stop(t + 0.55);
+}
+function playSadHorn() {
+  if (state.muted) return; const ctx = getAudioCtx(); if (!ctx) return; const t = ctx.currentTime;
+  const playNote = (freq, off, dur) => {
+    const osc = ctx.createOscillator(), gain = ctx.createGain();
+    osc.connect(gain).connect(ctx.destination); osc.type = 'sawtooth';
+    osc.frequency.setValueAtTime(freq, t + off);
+    osc.frequency.linearRampToValueAtTime(freq * 0.93, t + off + dur);
+    gain.gain.setValueAtTime(0, t + off); gain.gain.linearRampToValueAtTime(0.14, t + off + 0.03);
+    gain.gain.exponentialRampToValueAtTime(0.001, t + off + dur); osc.start(t + off); osc.stop(t + off + dur + 0.05);
+  };
+  playNote(220, 0, 0.28); playNote(196, 0.28, 0.55);
+}
+function playFanfare() {
+  if (state.muted) return; const ctx = getAudioCtx(); if (!ctx) return; const t = ctx.currentTime;
+  [261.6, 329.6, 392.0, 523.3].forEach((freq, i) => {
+    const osc = ctx.createOscillator(), gain = ctx.createGain();
+    osc.connect(gain).connect(ctx.destination); osc.type = 'triangle'; osc.frequency.value = freq;
+    const start = i * 0.09; gain.gain.setValueAtTime(0, t + start); gain.gain.linearRampToValueAtTime(0.16, t + start + 0.02);
+    gain.gain.exponentialRampToValueAtTime(0.001, t + start + 0.45); osc.start(t + start); osc.stop(t + start + 0.5);
+  });
+}
+function playClick() {
+  if (state.muted) return; const ctx = getAudioCtx(); if (!ctx) return; const t = ctx.currentTime;
+  const osc = ctx.createOscillator(), gain = ctx.createGain();
+  osc.connect(gain).connect(ctx.destination); osc.type = 'square'; osc.frequency.value = 800;
+  gain.gain.setValueAtTime(0.08, t); gain.gain.exponentialRampToValueAtTime(0.001, t + 0.05); osc.start(t); osc.stop(t + 0.06);
+}
+
+// ============================================================
+// CONFETTI
+// ============================================================
+function fireConfetti(originX, originY) {
+  const colors = ['#B11A24', '#E6A82E', '#FFFFFF', '#2C7A3F', '#1B3A78', '#FF8700'];
+  const x = originX ?? window.innerWidth / 2, y = originY ?? window.innerHeight / 3;
+  for (let i = 0; i < 36; i++) {
+    const piece = document.createElement('div'); piece.className = 'confetti-piece';
+    piece.style.left = x + 'px'; piece.style.top = y + 'px'; piece.style.background = colors[i % colors.length];
+    const angle = (Math.random() * Math.PI) - Math.PI / 2, force = 180 + Math.random() * 220;
+    piece.style.setProperty('--dx', Math.cos(angle) * force + 'px');
+    piece.style.setProperty('--dy', (Math.sin(angle) * force + 380) + 'px');
+    piece.style.setProperty('--rot', (Math.random() * 1080 - 540) + 'deg');
+    piece.style.animationDelay = (Math.random() * 0.1) + 's';
+    document.body.appendChild(piece); setTimeout(() => piece.remove(), 2000);
+  }
+}
+
+// ============================================================
+// HELPERS
+// ============================================================
+const $ = (s) => document.querySelector(s);
+const $$ = (s) => document.querySelectorAll(s);
+const driverByCar = (num) => STARTING_GRID.find(d => d.num === String(num));
+function escapeHtml(s){ return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+function showAlert(text, variant = '') {
+  const stack = $('#alertsStack'); const el = document.createElement('div');
+  el.className = 'alert ' + variant; el.textContent = text; stack.appendChild(el);
+  setTimeout(() => el.remove(), 6500);
+}
+function showModal(title, body, onConfirm) {
+  $('#modalTitle').textContent = title; $('#modalBody').textContent = body; $('#modal').classList.add('show');
+  const ok = $('#modalOk'), cancel = $('#modalCancel');
+  const close = () => { $('#modal').classList.remove('show'); ok.onclick = null; cancel.onclick = null; };
+  ok.onclick = () => { close(); onConfirm(); }; cancel.onclick = close;
+}
+
+function getCurrentPos(carNum) {
+  const p = state.race.positions[String(carNum)];
+  if (p) return { position: p.pos, laps: p.laps, status: p.status || '', gap: p.gap };
+  const d = driverByCar(carNum);
+  return d ? { position: d.startPos, laps: 0, status: '', gap: null } : null;
+}
+
+// ============================================================
+// LIVE POLLING
+// ============================================================
+async function poll() {
+  try {
+    if (USE_LOCAL && LocalBackend.isSim() && state.race.status === 'in') LocalBackend.simStep();
+    const data = await api.getState();
+    const changed = data.rev !== state.rev;
+    state.members = data.members;
+    if (changed) {
+      const prevPositions = state.race.positions || {};
+      state.race = data.race;
+      state.rev = data.rev;
+      syncStatusUI();
+      if (state.race.status === 'in' || state.race.status === 'post') {
+        detectMovement(prevPositions, state.race.positions);
+      }
+      render();
+    } else {
+      // still tick the pre-race countdown
+      if (state.race.status === 'pre') syncStatusUI();
+    }
+  } catch (e) {
+    setStatus('pre', 'Reconnecting…');
+  } finally {
+    setTimeout(poll, USE_LOCAL ? 3000 : CLIENT_POLL_MS);
+  }
+}
+
+function syncStatusUI() {
+  const r = state.race;
+  if (r.status === 'in') {
+    const flagWord = r.flag && r.flag !== 'green' ? ' · ' + r.flag.toUpperCase() : '';
+    setStatus(r.flag === 'yellow' ? 'yellow' : r.flag === 'red' ? 'red' : 'in', 'LIVE' + flagWord);
+    $('#lapInfo').textContent = `LAP ${r.lap || 0} / ${r.totalLaps || 200}`;
+  } else if (r.status === 'post') {
+    setStatus('post', 'FINAL'); $('#lapInfo').textContent = 'FINAL';
+  } else {
+    updatePreRaceCountdown();
+  }
+}
+
+function updatePreRaceCountdown() {
+  const diff = RACE_START - Date.now();
+  if (diff > 0) {
+    const days = Math.floor(diff / 86400000), hours = Math.floor((diff % 86400000) / 3600000), mins = Math.floor((diff % 3600000) / 60000);
+    let label;
+    if (days >= 1) label = `${days}d ${hours}h to green`;
+    else if (hours >= 1) label = `${hours}h ${mins}m to start`;
+    else if (mins >= 1) label = `${mins}m to start`;
+    else label = 'Cars on the grid';
+    setStatus('pre', label);
+  } else {
+    setStatus('pre', state.race.mode === 'sim' ? 'Demo mode' : 'Waiting for green');
+  }
+  $('#lapInfo').textContent = `— / ${state.race.totalLaps || 200}`;
+}
+
+function setStatus(kind, label) {
+  $('#statusText').textContent = label;
+  const dot = $('#statusDot'); dot.className = 'status-dot';
+  if (kind === 'in') dot.classList.add('live');
+  else if (kind === 'yellow') dot.classList.add('yellow');
+  else if (kind === 'red') dot.classList.add('red');
+}
+
+function detectMovement(prev, now) {
+  const prevPos = {}; Object.keys(prev).forEach(n => prevPos[n] = prev[n].pos);
+  let upTriggered = false, downTriggered = false; const alertsToShow = [];
+
+  Object.keys(now).forEach(num => {
+    const was = state.lastPositions[num] ?? prevPos[num];
+    const is = now[num].pos;
+    if (was && Math.abs(was - is) >= 3) {
+      const driver = driverByCar(num);
+      const owners = state.members.filter(m => m.picks.includes(num));
+      if (owners.length > 0 && driver) {
+        const dir = is < was ? 'up' : 'down', delta = Math.abs(was - is), names = owners.map(o => o.name).join(' & ');
+        alertsToShow.push({ text: `${dir === 'up' ? '🚀' : '😢'}  ${driver.name} ${dir === 'up' ? '↑' : '↓'} ${delta} — ${names}`, variant: dir === 'up' ? 'green' : 'brick' });
+        if (dir === 'up') upTriggered = true; else downTriggered = true;
+      }
+    }
+    state.lastPositions[num] = is;
+  });
+
+  const leadNow = Object.keys(now).find(n => now[n].pos === 1);
+  if (state.leadNum && leadNow && leadNow !== state.leadNum) {
+    const d = driverByCar(leadNow); const owners = state.members.filter(m => m.picks.includes(leadNow));
+    if (owners.length > 0) {
+      alertsToShow.push({ text: `🏁  ${d ? d.name : 'Car #' + leadNow} TAKES THE LEAD! (${owners.map(o => o.name).join(' & ')})`, variant: 'green' });
+      playFanfare(); fireConfetti(window.innerWidth / 2, 120);
+    } else {
+      alertsToShow.push({ text: `🏁  NEW LEADER: ${d ? d.name : 'Car #' + leadNow}`, variant: '' });
+    }
+  }
+  state.leadNum = leadNow || state.leadNum;
+
+  if (upTriggered) setTimeout(playBoing, 50);
+  if (downTriggered) setTimeout(playSadHorn, upTriggered ? 600 : 50);
+  alertsToShow.slice(0, 3).forEach(a => showAlert(a.text, a.variant));
+}
+
+// ============================================================
+// RENDER
+// ============================================================
+function render() {
+  if (state.view === 'family') renderFamily();
+  else if (state.view === 'leaderboard') renderLeaderboard();
+  else if (state.view === 'setup') renderSetup();
+  else if (state.view === 'admin') renderAdmin();
+  renderFooter();
+}
+
+function avatarHtml(driver, size = '') {
+  const sz = size ? ' ' + size : '';
+  return `<div class="avatar${sz}" style="background:${teamColor(driver.team)}">${initials(driver.name)}<span class="flag">${driver.flag}</span></div>`;
+}
+
+function renderFamily() {
+  const el = $('#familyContent');
+  if (state.members.length === 0) {
+    el.innerHTML = `<div class="empty-state"><h3>No picks yet</h3>
+      <p>Tap "Picks" below to add family members and assign drivers.<br>Then come back here on race day.</p>
+      <button class="btn brick" onclick="setView('setup')">Set Up Picks</button></div>`;
+    return;
+  }
+  const scored = state.members.map(m => {
+    const positions = m.picks.map(num => { const c = getCurrentPos(num); return c ? c.position : null; }).filter(p => p !== null);
+    const avg = positions.length ? positions.reduce((a, b) => a + b, 0) / positions.length : 999;
+    return { ...m, avg, positions };
+  });
+  scored.sort((a, b) => a.avg - b.avg);
+  const bestAvg = scored[0]?.avg;
+
+  let countdownHtml = '';
+  if (state.race.status === 'pre') {
+    const diff = RACE_START - Date.now();
+    if (diff > 0) {
+      const days = Math.floor(diff / 86400000), hours = Math.floor((diff % 86400000) / 3600000), mins = Math.floor((diff % 3600000) / 60000);
+      let time; if (days >= 1) time = `${days}d ${hours}h ${mins}m`; else if (hours >= 1) time = `${hours}h ${mins}m`; else time = `${mins}m`;
+      countdownHtml = `<div class="countdown-banner"><div class="label">Green Flag In</div><div class="time">${time}</div></div>`;
+    }
+  }
+
+  el.innerHTML = countdownHtml + scored.map(m => {
+    const isWinning = m.avg === bestAvg && state.members.length > 1 && state.race.status !== 'pre' && m.picks.length >= 3;
+    return `<div class="family-card ${isWinning ? 'best' : ''}">
+      <div class="family-header">
+        <div class="family-name">${isWinning ? '<span class="crown">👑</span>' : ''}${escapeHtml(m.name)}</div>
+        <div class="family-score">${state.race.status === 'pre' ? 'AVG START' : 'AVG POS'}<span class="big">${m.avg < 999 ? m.avg.toFixed(1) : '—'}</span></div>
+      </div>
+      <div class="pick-list">
+        ${m.picks.map(num => renderPickRow(num)).join('') || '<div style="font-size:12px;color:var(--ink-2);padding:4px 8px;">No drivers picked yet</div>'}
+      </div></div>`;
+  }).join('');
+}
+
+function renderPickRow(carNum) {
+  const driver = driverByCar(carNum); if (!driver) return '';
+  const cur = getCurrentPos(carNum); const pos = cur ? cur.position : '—';
+  const change = cur && driver.startPos ? driver.startPos - cur.position : 0;
+  const isOut = cur && /(out|dnf|retired)/i.test(cur.status || '');
+  return `<div class="pick-row" data-car="${driver.num}">
+    <div class="p-pos ${isOut ? 'dnf' : ''}">P${pos}</div>
+    ${avatarHtml(driver, 'small')}
+    <div class="p-name"><span class="p-flag">${driver.flag}</span>${escapeHtml(driver.name)}</div>
+    <div class="p-change ${change > 0 ? 'up' : change < 0 ? 'down' : 'same'}">${change > 0 ? '▲' + change : change < 0 ? '▼' + Math.abs(change) : '—'}</div>
+  </div>`;
+}
+
+function renderLeaderboard() {
+  const el = $('#leaderboardContent');
+  const allDrivers = STARTING_GRID.map(d => {
+    const cur = getCurrentPos(d.num);
+    return { ...d, currentPos: cur ? cur.position : d.startPos, laps: cur ? cur.laps : 0, status: cur ? cur.status : '', gap: cur ? cur.gap : null };
+  });
+  allDrivers.sort((a, b) => a.currentPos - b.currentPos);
+
+  const pickedBy = {};
+  state.members.forEach(m => m.picks.forEach(num => { (pickedBy[num] = pickedBy[num] || []).push(m.name); }));
+
+  el.innerHTML = allDrivers.map(d => {
+    const change = d.startPos - d.currentPos; const owners = pickedBy[d.num];
+    const isOut = /(out|dnf|retired)/i.test(d.status || ''); const inPit = /pit/i.test(d.status || '');
+    const isLeader = d.currentPos === 1 && state.race.status === 'in';
+    return `<div class="driver-row ${owners ? 'is-pick' : ''} ${isOut ? 'out' : ''} ${isLeader ? 'leader' : ''}" data-car="${d.num}">
+      <div class="pos ${d.currentPos <= 3 ? 'top3' : ''}">${d.currentPos}
+        ${change !== 0 ? `<div class="pos-change ${change > 0 ? 'up' : 'down'}">${change > 0 ? '▲' + change : '▼' + Math.abs(change)}</div>` : ''}</div>
+      ${avatarHtml(d)}
+      <div class="driver-info">
+        <div class="driver-name">${escapeHtml(d.name)} ${d.indyWins.length > 0 ? `<span title="${d.indyWins.length}× Indy 500 winner" style="color:var(--gold)">${'★'.repeat(Math.min(d.indyWins.length, 4))}</span>` : ''}</div>
+        <div class="driver-team">#${d.num} · ${escapeHtml(d.team)}</div>
+      </div>
+      <div class="driver-meta">
+        ${d.gap ? `<div class="gap">${escapeHtml(String(d.gap))}</div>` : `<div class="gap">P${d.startPos}</div>`}
+        ${isOut ? '<span class="tag out">Out</span>' : inPit ? '<span class="tag pit">Pit</span>' : ''}
+        ${owners ? `<span class="tag pick">${escapeHtml(owners.join(', '))}</span>` : ''}
+      </div></div>`;
+  }).join('');
+}
+
+function renderSetup() {
+  const list = $('#membersList');
+  if (state.members.length === 0) { list.innerHTML = '<div class="empty-state"><p>Add at least one family member to begin.</p></div>'; return; }
+  list.innerHTML = state.members.map(m => {
+    const pickCount = m.picks.length; const status = pickCount >= 3 ? 'ok' : 'under';
+    return `<div class="member-edit-card">
+      <div class="member-edit-head">
+        <div class="name">${escapeHtml(m.name)}</div>
+        <div class="pick-count ${status}">${pickCount} / 3+</div>
+        <button class="btn small ghost" data-remove-member="${m.id}">×</button>
+      </div>
+      <div class="driver-picker">
+        ${STARTING_GRID.map(d => {
+          const isMine = m.picks.includes(d.num);
+          const winStars = d.indyWins.length > 0 ? ' ★'.repeat(Math.min(d.indyWins.length, 4)) : '';
+          return `<button class="picker-driver ${isMine ? 'selected' : ''}" data-member="${m.id}" data-car="${d.num}">
+            <span class="pp">${d.startPos}</span>
+            <span class="pn-wrap"><span class="pn">${d.flag} ${escapeHtml(shortName(d.name))}${winStars}</span>
+            <span class="pn-sub">#${d.num} · ${escapeHtml(shortTeam(d.team))}</span></span></button>`;
+        }).join('')}
+      </div></div>`;
+  }).join('');
+}
+
+function shortName(full) { const p = full.split(' '); return p.length <= 1 ? full : p[0][0] + '. ' + p.slice(1).join(' '); }
+function shortTeam(team) {
+  return team.replace('Chip Ganassi Racing', 'Ganassi').replace('Team Penske', 'Penske').replace('Andretti Global', 'Andretti')
+    .replace('Arrow McLaren', 'McLaren').replace('Ed Carpenter Racing', 'ECR').replace('A.J. Foyt Racing', 'Foyt')
+    .replace('A.J. Foyt / HMD', 'Foyt/HMD').replace('Meyer Shank Racing', 'Meyer Shank').replace('Rahal Letterman Lanigan', 'RLL')
+    .replace('Dale Coyne Racing', 'Coyne').replace('Juncos Hollinger', 'Juncos').replace('DRR Cusick', 'DRR Cusick').replace('Dreyer & Reinbold', 'DRR');
+}
+
+function renderFooter() {
+  const r = state.race;
+  const srcLabel = { scraper: 'Live: IndyCar leaderboard (auto)', manual: 'Live: scorekeeper (manual)', sim: 'Demo simulation', none: 'Standing by' }[r.source] || r.source;
+  const note = r.note ? `<br>${escapeHtml(r.note)}` : '';
+  $('#footerNote').innerHTML = `Mode: <strong>${srcLabel}</strong> · refreshes every ${CLIENT_POLL_MS/1000}s · shared across all phones${note}<br>
+    Built for the 110th Indianapolis 500 · No login, no tracking`;
+}
+
+// ============================================================
+// RACE CONTROL (admin)
+// ============================================================
+function renderAdmin() {
+  const r = state.race;
+  $('#rcBanner').innerHTML = `<strong>You're the scorekeeper.</strong> Pick how the race updates:<br>
+    • <strong>Auto</strong> scrapes IndyCar's live leaderboard server-side (~20s). If it stalls, switch to Manual.<br>
+    • <strong>Manual</strong> = you set the order from the TV broadcast below.<br>
+    • <strong>Sim</strong> runs a fake race so you can test everything before Sunday.<br>
+    <em>Current source: ${escapeHtml(r.source)}.</em>`;
+  $$('.mode-btn').forEach(b => b.classList.toggle('active', b.dataset.mode === r.mode));
+  $('#manualPanel').style.display = r.mode === 'manual' ? 'block' : 'none';
+  if (r.mode === 'manual') renderOrderList();
+}
+
+let manualOrder = null;
+function renderOrderList() {
+  // initialise from current positions or grid
+  if (!manualOrder) {
+    const cur = Object.entries(state.race.positions || {});
+    if (cur.length) { cur.sort((a, b) => a[1].pos - b[1].pos); manualOrder = cur.map(([num]) => num); }
+    else manualOrder = STARTING_GRID.map(d => d.num);
+  }
+  $('#rcLap').value = state.race.lap || 0;
+  if (state.race.flag) $('#rcFlag').value = state.race.flag;
+  $('#rcStatus').value = state.race.status || 'in';
+
+  $('#orderList').innerHTML = manualOrder.map((num, i) => {
+    const d = driverByCar(num);
+    return `<div class="order-item">
+      <div class="oi-pos">${i + 1}</div>
+      <div class="oi-car">${num}</div>
+      <div class="oi-name">${d ? escapeHtml(d.name) : '#' + num}</div>
+      <button class="oi-btn" data-mv="up" data-i="${i}">▲</button>
+      <button class="oi-btn" data-mv="down" data-i="${i}">▼</button>
+    </div>`;
+  }).join('');
+}
+
+// ============================================================
+// EVENTS
+// ============================================================
+function setView(name) {
+  state.view = name;
+  $$('.tab').forEach(t => t.classList.toggle('active', t.dataset.view === name));
+  $$('.view').forEach(v => v.classList.toggle('active', v.id === 'view-' + name));
+  render();
+}
+window.setView = setView;
+
+$$('.tab').forEach(t => t.addEventListener('click', () => { if (t.dataset.view === 'admin' && !state.admin) { promptAdmin(); return; } setView(t.dataset.view); }));
+
+$('#addMemberBtn').addEventListener('click', addMember);
+$('#newMemberName').addEventListener('keydown', e => { if (e.key === 'Enter') addMember(); });
+
+async function addMember() {
+  const inp = $('#newMemberName'); const name = inp.value.trim(); if (!name) return;
+  const res = await api.addMember(name);
+  if (!res.ok) { showAlert(res.error || 'Could not add', 'brick'); return; }
+  inp.value = ''; await refreshNow();
+}
+
+$('#membersList').addEventListener('click', async (e) => {
+  const removeBtn = e.target.closest('[data-remove-member]');
+  if (removeBtn) {
+    const id = removeBtn.dataset.removeMember; const m = state.members.find(x => x.id === id);
+    showModal('Remove ' + (m ? m.name : 'member') + '?', 'Their picks will be cleared.', async () => { await api.removeMember(id); await refreshNow(); });
+    return;
+  }
+  const picker = e.target.closest('.picker-driver');
+  if (picker) {
+    playClick();
+    const memberId = picker.dataset.member, carNum = picker.dataset.car;
+    const m = state.members.find(x => x.id === memberId); if (!m) return;
+    const next = m.picks.includes(carNum) ? m.picks.filter(c => c !== carNum) : [...m.picks, carNum];
+    const res = await api.setPicks(memberId, next);
+    if (!res.ok) { showAlert(res.error || 'Could not save', 'brick'); return; }
+    await refreshNow();
+  }
+});
+
+$('#resetAllBtn').addEventListener('click', () => {
+  showModal('Reset everything?', 'This deletes all family members and picks for everyone. Cannot be undone.', async () => { await api.resetAll(); await refreshNow(); });
+});
+
+// Admin unlock
+$('#adminBtn').addEventListener('click', promptAdmin);
+function promptAdmin() {
+  const pin = prompt(USE_LOCAL ? 'Race Control PIN (demo PIN is 1911):' : 'Race Control PIN:'); if (pin == null) return;
+  try { localStorage.setItem(ADMIN_PIN_KEY, pin); } catch {}
+  if (USE_LOCAL) {
+    if (String(pin) === LOCAL_DEMO_PIN) { state.admin = true; $('#adminTab').style.display = ''; setView('admin'); showAlert('Race Control unlocked (demo)', 'green'); }
+    else showAlert('Wrong PIN — the demo PIN is 1911', 'brick');
+    return;
+  }
+  // validate by attempting a no-op mode set to current mode
+  api.setMode(state.race.mode).then(res => {
+    if (res.ok) { state.admin = true; $('#adminTab').style.display = ''; setView('admin'); showAlert('Race Control unlocked', 'green'); }
+    else { showAlert('Wrong PIN', 'brick'); }
+  });
+}
+$('#adminLockBtn').addEventListener('click', () => { state.admin = false; $('#adminTab').style.display = 'none'; setView('family'); });
+
+// Mode buttons
+$$('.mode-btn').forEach(b => b.addEventListener('click', async () => {
+  const res = await api.setMode(b.dataset.mode);
+  if (!res.ok) { showAlert(res.error || 'Failed', 'brick'); return; }
+  manualOrder = null; await refreshNow(); renderAdmin();
+}));
+
+// Order reordering
+$('#orderList').addEventListener('click', (e) => {
+  const btn = e.target.closest('.oi-btn'); if (!btn) return;
+  const i = +btn.dataset.i, dir = btn.dataset.mv;
+  const j = dir === 'up' ? i - 1 : i + 1;
+  if (j < 0 || j >= manualOrder.length) return;
+  [manualOrder[i], manualOrder[j]] = [manualOrder[j], manualOrder[i]];
+  renderOrderList();
+});
+
+$('#rcPush').addEventListener('click', async () => {
+  const payload = { order: manualOrder, lap: +$('#rcLap').value, flag: $('#rcFlag').value, status: $('#rcStatus').value };
+  const res = await api.pushRace(payload);
+  if (!res.ok) { showAlert(res.error || 'Push failed', 'brick'); return; }
+  showAlert('Pushed to everyone ✓', 'green'); await refreshNow();
+});
+
+async function refreshNow() {
+  const data = await api.getState();
+  state.members = data.members; state.race = data.race; state.rev = data.rev;
+  syncStatusUI(); render();
+}
+
+// ============================================================
+// DRIVER DETAIL MODAL
+// ============================================================
+function openDriverDetail(carNum) {
+  const d = driverByCar(carNum); if (!d) return;
+  const cur = getCurrentPos(carNum); const change = cur ? d.startPos - cur.position : 0;
+  const owners = state.members.filter(m => m.picks.includes(carNum));
+  $('#driverDetailCard').innerHTML = `
+    <div class="driver-detail-hero" style="--team-bg: ${teamColor(d.team)}">
+      ${avatarHtml(d, 'big')}
+      <div class="text"><div class="name">${escapeHtml(d.name)}</div>
+        <div class="sub">${d.flag} ${escapeHtml(d.country)} · Car #${d.num}</div>
+        <div class="sub" style="margin-top:2px;">${escapeHtml(d.team)} · ${d.engine}</div></div>
+    </div>
+    <div class="driver-detail-body">
+      <div class="stat-grid">
+        <div class="stat"><div class="label">Starting Pos</div><div class="value">P${d.startPos}</div></div>
+        <div class="stat"><div class="label">${state.race.status === 'in' ? 'Current Pos' : 'Current'}</div>
+          <div class="value">${cur ? 'P' + cur.position : '—'} ${change !== 0 ? `<span style="font-size:13px;color:${change>0?'var(--green)':'var(--brick)'}">${change>0?'▲'+change:'▼'+Math.abs(change)}</span>` : ''}</div></div>
+        <div class="stat ${d.indyWins.length > 0 ? 'gold' : ''}"><div class="label">Indy 500 Wins</div><div class="value">${d.indyWins.length || '—'}</div></div>
+        <div class="stat"><div class="label">Win Years</div><div class="value small">${d.indyWins.length ? d.indyWins.join(', ') : '—'}</div></div>
+      </div>
+      ${owners.length > 0 ? `<div class="pickers-row">Picked by:<span class="pickers-names">${escapeHtml(owners.map(o => o.name).join(', '))}</span></div>`
+        : `<div class="pickers-row">Not picked by any Gilbert yet.</div>`}
+      <div style="display:flex;justify-content:flex-end;margin-top:14px;"><button class="btn primary" onclick="closeDriverDetail()">Close</button></div>
+    </div>`;
+  $('#driverDetailModal').classList.add('show');
+}
+function closeDriverDetail() { $('#driverDetailModal').classList.remove('show'); }
+window.closeDriverDetail = closeDriverDetail;
+$('#driverDetailModal').addEventListener('click', (e) => { if (e.target.id === 'driverDetailModal') closeDriverDetail(); });
+document.addEventListener('click', (e) => {
+  const row = e.target.closest('.driver-row[data-car], .pick-row[data-car]');
+  if (row) { playClick(); openDriverDetail(row.dataset.car); }
+});
+
+// Mute
+const MUTE_KEY = 'brickyard:muted';
+$('#muteBtn').addEventListener('click', () => {
+  state.muted = !state.muted; try { localStorage.setItem(MUTE_KEY, state.muted ? '1' : '0'); } catch {}
+  $('#muteIcon').textContent = state.muted ? '🔇' : '🔊'; if (!state.muted) playClick();
+});
+
+// ============================================================
+// BOOT
+// ============================================================
+async function boot() {
+  try { state.muted = localStorage.getItem(MUTE_KEY) === '1'; } catch {}
+  $('#muteIcon').textContent = state.muted ? '🔇' : '🔊';
+  if (adminPin()) { /* keep hidden until they re-unlock */ }
+  // Probe for the Azure backend; if it doesn't answer with our JSON API,
+  // run fully on-device (file://, GitHub Pages, in-app preview, etc.).
+  try {
+    const r = await fetch('/api/state', { cache: 'no-store', signal: AbortSignal.timeout ? AbortSignal.timeout(2500) : undefined });
+    if (!r.ok) throw new Error('no api');
+    const j = await r.json();              // must be real JSON…
+    if (!j || typeof j.race !== 'object') throw new Error('not our api'); // …with a race object
+  } catch { USE_LOCAL = true; }
+  updatePreRaceCountdown();
+  await refreshNow().catch(() => {});
+  render();
+  poll();
+  setInterval(() => { if (state.race.status === 'pre') { syncStatusUI(); if (state.view === 'family') renderFamily(); } }, 60000);
+}
+boot();
+</script>
+</body>
+</html>
