@@ -242,12 +242,20 @@
   }
   .avatar.small { width: 30px; height: 30px; font-size: 11px; }
   .avatar.big { width: 80px; height: 80px; font-size: 28px; }
+  .avatar .av-initials { position: relative; z-index: 0; }
+  .avatar .av-photo {
+    position: absolute; inset: 0;
+    width: 100%; height: 100%;
+    object-fit: cover; border-radius: 50%;
+    z-index: 1; background: inherit;
+  }
   .avatar .flag {
     position: absolute;
     bottom: -3px;
     right: -4px;
     font-size: 13px;
     line-height: 1;
+    z-index: 2;
     filter: drop-shadow(0 1px 1px rgba(0,0,0,0.3));
   }
   .avatar.big .flag { font-size: 22px; bottom: -4px; right: -6px; }
@@ -356,6 +364,7 @@
     overflow: hidden;
     text-overflow: ellipsis;
   }
+  .team-dot { display: inline-block; width: 8px; height: 8px; border-radius: 2px; margin-right: 5px; vertical-align: middle; }
 
   .driver-meta {
     text-align: right;
@@ -646,6 +655,24 @@
     border-radius: 8px; padding: 0 5px; line-height: 14px;
   }
   .card-foot { font-size: 10px; color: var(--ink-2); text-align: center; margin-top: 10px; }
+
+  /* ---- collapsed member summary (3 picks locked in) ---- */
+  .member-edit-card.collapsed { border-left: 4px solid var(--green); }
+  .collapsed-picks { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-bottom: 10px; }
+  .cpick {
+    display: flex; align-items: center; gap: 7px;
+    background: var(--cream-2); border-left: 3px solid var(--ink-2);
+    border-radius: 6px; padding: 6px 8px; min-width: 0;
+  }
+  .cpick .cp-meta { min-width: 0; }
+  .cpick .cp-name { font-weight: 700; font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .cpick .cp-sub { font-family: 'JetBrains Mono', monospace; font-size: 9px; color: var(--ink-2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .edit-picks { width: 100%; }
+  .sponsor-tag {
+    display: inline-block; margin-top: 6px; padding: 2px 8px;
+    background: rgba(255,255,255,0.18); border: 1px solid rgba(255,255,255,0.35);
+    border-radius: 999px; font-weight: 700; font-size: 11px; letter-spacing: 0.03em;
+  }
 
   /* ---- transient "Saved ✓" chip ---- */
   .saved-chip {
@@ -941,6 +968,43 @@
     background: linear-gradient(90deg, rgba(230, 168, 46, 0.08) 0%, transparent 60%);
   }
 
+  /* ---- leaderboard team spotlight ---- */
+  .lb-teams {
+    display: flex; gap: 6px; overflow-x: auto; padding: 2px 0 10px;
+    -webkit-overflow-scrolling: touch; scrollbar-width: none;
+  }
+  .lb-teams::-webkit-scrollbar { display: none; }
+  .lb-team-chip {
+    flex: 0 0 auto; padding: 7px 13px; border: 1.5px solid var(--ink);
+    background: var(--paper); border-radius: 999px; cursor: pointer;
+    font-family: 'Manrope', sans-serif; font-weight: 700; font-size: 12px; white-space: nowrap;
+  }
+  .lb-team-chip.active { background: var(--ink); color: var(--cream); }
+  .lb-focus-note { font-size: 11px; color: var(--ink-2); margin: -4px 0 10px; }
+  .lb-focus-note strong { color: var(--brick); }
+  .driver-row.tinted {
+    border-color: var(--gold); border-width: 2px;
+    background: linear-gradient(90deg, rgba(230,168,46,0.22) 0%, rgba(230,168,46,0.06) 100%);
+    box-shadow: 0 1px 0 var(--gold);
+  }
+  .driver-row.dimmed { opacity: 0.4; }
+
+  /* ---- slow movement flash (~3s): green = up, red = down ---- */
+  .driver-row.flash-up { animation: flashUpSlow 3s ease-out; }
+  .driver-row.flash-down { animation: flashDownSlow 3s ease-out; }
+  @keyframes flashUpSlow {
+    0%   { background: #8fe3a8; box-shadow: inset 0 0 0 2px var(--green); }
+    20%  { background: #b9f0c9; }
+    45%  { background: #8fe3a8; }
+    100% { background: var(--paper); box-shadow: none; }
+  }
+  @keyframes flashDownSlow {
+    0%   { background: #f3a3a9; box-shadow: inset 0 0 0 2px var(--brick); }
+    20%  { background: #f8c9cd; }
+    45%  { background: #f3a3a9; }
+    100% { background: var(--paper); box-shadow: none; }
+  }
+
   .view.active { animation: viewIn 0.25s ease-out; }
   @keyframes viewIn {
     from { opacity: 0; transform: translateY(8px); }
@@ -998,7 +1062,7 @@
 </header>
 
 <nav class="tabs">
-  <button class="tab active" data-view="family">Family</button>
+  <button class="tab active" data-view="family">Teams</button>
   <button class="tab" data-view="leaderboard">Leaderboard</button>
   <button class="tab" data-view="setup">Picks</button>
   <button class="tab admin-tab" data-view="admin" id="adminTab" style="display:none;">🏁 Control</button>
@@ -1017,16 +1081,17 @@
 <!-- ============ SETUP VIEW ============ -->
 <main class="view" id="view-setup">
   <p class="setup-intro">
-    Add each family member, then pick <strong>exactly 3 drivers</strong> from the Field of 33.
-    Two people can share a driver — but no two people can have the <strong>same trio</strong>.
-    Everyone edits the same shared board, so you can set up from any phone. Picks save themselves.
+    Make a <strong>team</strong> for each person (name it whatever you like!), then pick
+    <strong>exactly 3 drivers</strong> from the Field of 33. Two teams can share a driver — but
+    no two teams can have the <strong>same trio</strong>. Everyone edits the same shared board,
+    so you can set up from any phone. Picks save themselves.
   </p>
 
   <div id="membersList"></div>
 
   <div class="add-member-bar">
-    <input type="text" class="input" id="newMemberName" placeholder="Add a family member…" maxlength="20">
-    <button class="btn primary" id="addMemberBtn">+ Add person</button>
+    <input type="text" class="input" id="newMemberName" placeholder="Team name (e.g., Dad's Dream Team)…" maxlength="22">
+    <button class="btn primary" id="addMemberBtn">+ Add team</button>
   </div>
 
   <p class="footer-note" id="footerNote">
@@ -1099,23 +1164,47 @@
 'use strict';
 
 // ============================================================
-// TEAM COLORS
+// TEAM COLORS — primary + accent, matched to each team's livery
 // ============================================================
 const TEAM_COLORS = {
-  'Chip Ganassi Racing':     '#C8102E',
-  'Team Penske':             '#0A0A0A',
-  'Andretti Global':         '#1A1F2C',
-  'Arrow McLaren':           '#FF8700',
-  'Ed Carpenter Racing':     '#1B3A78',
-  'A.J. Foyt Racing':        '#9C2C2C',
-  'A.J. Foyt / HMD':         '#9C2C2C',
-  'Meyer Shank Racing':      '#1B998B',
-  'Rahal Letterman Lanigan': '#1E3A8A',
-  'Dale Coyne Racing':       '#D4AF37',
-  'Juncos Hollinger':        '#7C0A02',
-  'Dreyer & Reinbold':       '#7E2E84',
-  'DRR Cusick':              '#5C2E7E',
+  'Chip Ganassi Racing':     { primary: '#E1141C', accent: '#7a0a10' },
+  'Team Penske':             { primary: '#111111', accent: '#D8232A' },
+  'Andretti Global':         { primary: '#0E1116', accent: '#1B9CFC' },
+  'Arrow McLaren':           { primary: '#FF8000', accent: '#3a1c00' },
+  'Ed Carpenter Racing':     { primary: '#1A1A1A', accent: '#E32219' },
+  'A.J. Foyt Racing':        { primary: '#E89B00', accent: '#3a2900' },
+  'A.J. Foyt / HMD':         { primary: '#E89B00', accent: '#3a2900' },
+  'Meyer Shank Racing':      { primary: '#111111', accent: '#C5B358' },
+  'Rahal Letterman Lanigan': { primary: '#ED1C24', accent: '#5a0a0e' },
+  'Dale Coyne Racing':       { primary: '#003DA5', accent: '#00205c' },
+  'Juncos Hollinger':        { primary: '#0E1116', accent: '#00A4E4' },
+  'Dreyer & Reinbold':       { primary: '#003594', accent: '#8a929b' },
+  'DRR Cusick':              { primary: '#003594', accent: '#8a929b' },
+  'Abel Motorsports':        { primary: '#1F7A3D', accent: '#0c3a1d' },
 };
+
+// Primary sponsors from the 2026 Indianapolis 500 entry list (per Wikipedia,
+// cross-checked where possible). Indy-500 liveries can differ from season
+// sponsors, so treat as best-available; #51 Abel was unconfirmed (TBA).
+const SPONSORS = {
+  '10': 'DHL', '20': 'Java House', '12': 'Verizon', '60': 'SiriusXM',
+  '14': 'Homes For Our Troops', '5': 'Arrow Electronics', '8': 'Sunoco',
+  '23': 'Kingspan', '3': 'Pennzoil', '9': 'PNC Bank', '76': 'Wedbush',
+  '75': 'Amada', '33': 'SlimFast', '06': 'Cleveland-Cliffs', '21': 'Splenda',
+  '66': 'Spectrum', '28': 'Phoenix Investors', '7': 'VELO', '26': 'TWG AI',
+  '6': 'NTT Data', '45': 'Droplight', '31': 'PrizePicks', '2': 'Shell',
+  '18': 'Bitcoin MAX', '27': "Sam's Club", '11': 'e.l.f. Cosmetics',
+  '47': 'Enve', '15': 'United Rentals', '19': 'Nammo',
+  '77': 'Good Heart Animal Health', '4': 'Combitrans Amazonia', '24': 'INVST'
+};
+function sponsorOf(num) { return SPONSORS[String(num)] || ''; }
+
+// Official IndyCar headshot URL (loads on the live site; falls back to a
+// team-coloured monogram if it can't load — e.g. in the offline preview).
+function photoUrl(d) {
+  const slug = d.name.replace(/[^A-Za-z]/g, '');
+  return `https://www.indycar.com/-/media/IndyCar/Drivers/IndyCar-Series/Hero/${slug}.jpg`;
+}
 
 // ============================================================
 // 2026 INDY 500 STARTING GRID
@@ -1128,10 +1217,10 @@ const STARTING_GRID = [
   { startPos:  5, num: '14', name: 'Santino Ferrucci',    team: 'A.J. Foyt Racing',        engine: 'Chevy', flag: '🇺🇸', country: 'USA',            indyWins: [] },
   { startPos:  6, num: '5',  name: "Pato O'Ward",         team: 'Arrow McLaren',           engine: 'Chevy', flag: '🇲🇽', country: 'Mexico',         indyWins: [] },
   { startPos:  7, num: '8',  name: 'Kyffin Simpson',      team: 'Chip Ganassi Racing',     engine: 'Honda', flag: '🇰🇾', country: 'Cayman Islands', indyWins: [] },
-  { startPos:  8, num: '23', name: 'Conor Daly',          team: 'Juncos Hollinger',        engine: 'Chevy', flag: '🇺🇸', country: 'USA',            indyWins: [] },
+  { startPos:  8, num: '23', name: 'Conor Daly',          team: 'Dreyer & Reinbold',       engine: 'Chevy', flag: '🇺🇸', country: 'USA',            indyWins: [] },
   { startPos:  9, num: '3',  name: 'Scott McLaughlin',    team: 'Team Penske',             engine: 'Chevy', flag: '🇳🇿', country: 'New Zealand',    indyWins: [] },
   { startPos: 10, num: '9',  name: 'Scott Dixon',         team: 'Chip Ganassi Racing',     engine: 'Honda', flag: '🇳🇿', country: 'New Zealand',    indyWins: [2008] },
-  { startPos: 11, num: '76', name: 'Rinus VeeKay',        team: 'Dale Coyne Racing',       engine: 'Chevy', flag: '🇳🇱', country: 'Netherlands',    indyWins: [] },
+  { startPos: 11, num: '76', name: 'Rinus VeeKay',        team: 'Juncos Hollinger',        engine: 'Chevy', flag: '🇳🇱', country: 'Netherlands',    indyWins: [] },
   { startPos: 12, num: '75', name: 'Takuma Sato',         team: 'Rahal Letterman Lanigan', engine: 'Honda', flag: '🇯🇵', country: 'Japan',          indyWins: [2017, 2020] },
   { startPos: 13, num: '33', name: 'Ed Carpenter',        team: 'Ed Carpenter Racing',     engine: 'Chevy', flag: '🇺🇸', country: 'USA',            indyWins: [] },
   { startPos: 14, num: '06', name: 'Helio Castroneves',   team: 'Meyer Shank Racing',      engine: 'Honda', flag: '🇧🇷', country: 'Brazil',         indyWins: [2001, 2002, 2009, 2021] },
@@ -1142,7 +1231,7 @@ const STARTING_GRID = [
   { startPos: 19, num: '26', name: 'Will Power',          team: 'Andretti Global',         engine: 'Honda', flag: '🇦🇺', country: 'Australia',      indyWins: [2018] },
   { startPos: 20, num: '6',  name: 'Nolan Siegel',        team: 'Arrow McLaren',           engine: 'Chevy', flag: '🇺🇸', country: 'USA',            indyWins: [] },
   { startPos: 21, num: '45', name: 'Louis Foster',        team: 'Rahal Letterman Lanigan', engine: 'Honda', flag: '🇬🇧', country: 'UK',             indyWins: [] },
-  { startPos: 22, num: '31', name: 'Ryan Hunter-Reay',    team: 'DRR Cusick',              engine: 'Chevy', flag: '🇺🇸', country: 'USA',            indyWins: [2014] },
+  { startPos: 22, num: '31', name: 'Ryan Hunter-Reay',    team: 'Arrow McLaren',           engine: 'Chevy', flag: '🇺🇸', country: 'USA',            indyWins: [2014] },
   { startPos: 23, num: '2',  name: 'Josef Newgarden',     team: 'Team Penske',             engine: 'Chevy', flag: '🇺🇸', country: 'USA',            indyWins: [2023, 2024] },
   { startPos: 24, num: '18', name: 'Romain Grosjean',     team: 'Dale Coyne Racing',       engine: 'Honda', flag: '🇫🇷', country: 'France',         indyWins: [] },
   { startPos: 25, num: '27', name: 'Kyle Kirkwood',       team: 'Andretti Global',         engine: 'Honda', flag: '🇺🇸', country: 'USA',            indyWins: [] },
@@ -1150,13 +1239,14 @@ const STARTING_GRID = [
   { startPos: 27, num: '47', name: 'Mick Schumacher',     team: 'Rahal Letterman Lanigan', engine: 'Honda', flag: '🇩🇪', country: 'Germany',        indyWins: [] },
   { startPos: 28, num: '15', name: 'Graham Rahal',        team: 'Rahal Letterman Lanigan', engine: 'Honda', flag: '🇺🇸', country: 'USA',            indyWins: [] },
   { startPos: 29, num: '19', name: 'Dennis Hauger',       team: 'Dale Coyne Racing',       engine: 'Honda', flag: '🇳🇴', country: 'Norway',         indyWins: [] },
-  { startPos: 30, num: '51', name: 'Jacob Abel',          team: 'Dale Coyne Racing',       engine: 'Chevy', flag: '🇺🇸', country: 'USA',            indyWins: [] },
+  { startPos: 30, num: '51', name: 'Jacob Abel',          team: 'Abel Motorsports',        engine: 'Chevy', flag: '🇺🇸', country: 'USA',            indyWins: [] },
   { startPos: 31, num: '77', name: 'Sting Ray Robb',      team: 'Juncos Hollinger',        engine: 'Chevy', flag: '🇺🇸', country: 'USA',            indyWins: [] },
-  { startPos: 32, num: '4',  name: 'Caio Collet',         team: 'Juncos Hollinger',        engine: 'Chevy', flag: '🇧🇷', country: 'Brazil',         indyWins: [] },
+  { startPos: 32, num: '4',  name: 'Caio Collet',         team: 'A.J. Foyt Racing',        engine: 'Chevy', flag: '🇧🇷', country: 'Brazil',         indyWins: [] },
   { startPos: 33, num: '24', name: 'Jack Harvey',         team: 'Dreyer & Reinbold',       engine: 'Chevy', flag: '🇬🇧', country: 'UK',             indyWins: [] },
 ];
 
-function teamColor(team) { return TEAM_COLORS[team] || '#4A4439'; }
+function teamColor(team) { const t = TEAM_COLORS[team]; return t ? t.primary : '#4A4439'; }
+function teamAccent(team) { const t = TEAM_COLORS[team]; return t ? t.accent : '#2a2620'; }
 function initials(name) { return name.split(' ').slice(0, 2).map(p => p[0]).join('').toUpperCase(); }
 
 const RACE_START = new Date('2026-05-24T16:45:00Z').getTime(); // ~12:45 PM ET green flag
@@ -1192,7 +1282,12 @@ const state = {
   leadNum: null,
   lastPositions: {},
   admin: false,
+  focusTeam: null,        // leaderboard: which team's drivers to spotlight
+  flash: {},              // carNum -> { dir:'up'|'down', until: ts } for movement flashes
 };
+
+// which member cards are expanded for editing (3-pick cards collapse by default)
+const expandedMembers = new Set();
 
 // ============================================================
 // API LAYER
@@ -1245,7 +1340,7 @@ const LocalBackend = (() => {
     isSim: () => st.race.mode === 'sim',
     simStep,
     getState: async () => ({ members: st.members, race: st.race, rev: st.rev }),
-    addMember: async (name) => { name = String(name || '').trim().slice(0, 24); if (!name) return { ok: false, error: 'Name required' }; if (st.members.some(m => m.name.toLowerCase() === name.toLowerCase())) return { ok: false, error: 'That name already exists' }; const member = { id: nid(), name, picks: [] }; st.members.push(member); bump(); return { ok: true, member }; },
+    addMember: async (name) => { name = String(name || '').trim().slice(0, 24); if (!name) return { ok: false, error: 'Name required' }; if (st.members.some(m => m.name.toLowerCase() === name.toLowerCase())) return { ok: false, error: 'That team name already exists' }; const member = { id: nid(), name, picks: [] }; st.members.push(member); bump(); return { ok: true, member }; },
     removeMember: async (id) => { st.members = st.members.filter(m => m.id !== id); bump(); },
     setPicks: async (id, picks) => { const m = st.members.find(x => x.id === id); if (!m) return { ok: false, status: 404, error: 'Unknown member' }; const clean = norm(picks); if (clean.length > 3) return { ok: false, status: 400, error: 'Pick exactly 3 drivers — remove one first.' }; if (clean.length === 3) { const k = key(clean); const clash = st.members.find(x => x.id !== id && x.picks.length === 3 && key(x.picks) === k); if (clash) return { ok: false, status: 409, error: `That's the exact same trio as ${clash.name}. Swap at least one driver — overlap is fine, but no identical sets of 3.` }; } m.picks = clean; bump(); return { ok: true, status: 200, member: m, complete: clean.length === 3 }; },
     setMode: async (mode) => { if (!['sim', 'auto', 'manual'].includes(mode)) return { ok: false, error: 'bad mode' }; st.race.mode = mode; if (mode === 'sim') { simReset(); st.race.status = 'in'; st.race.note = 'On-device demo race running.'; } else if (mode === 'auto') { st.race.note = 'Auto live-scraping needs the deployed Azure server — use Sim or Manual in this on-device demo.'; } else { st.race.note = 'Manual scoring (on-device demo).'; } bump(); return { ok: true, race: st.race }; },
@@ -1458,9 +1553,12 @@ function detectMovement(prev, now) {
   const prevPos = {}; Object.keys(prev).forEach(n => prevPos[n] = prev[n].pos);
   let upTriggered = false, downTriggered = false; const alertsToShow = [];
 
+  const flashTs = Date.now() + 3000;
   Object.keys(now).forEach(num => {
     const was = state.lastPositions[num] ?? prevPos[num];
     const is = now[num].pos;
+    // flash the row for ANY position change (green up / red down), ~3s
+    if (was && is !== was) state.flash[num] = { dir: is < was ? 'up' : 'down', until: flashTs };
     if (was && Math.abs(was - is) >= 3) {
       const driver = driverByCar(num);
       const owners = state.members.filter(m => m.picks.includes(num));
@@ -1503,14 +1601,17 @@ function render() {
 
 function avatarHtml(driver, size = '') {
   const sz = size ? ' ' + size : '';
-  return `<div class="avatar${sz}" style="background:${teamColor(driver.team)}">${initials(driver.name)}<span class="flag">${driver.flag}</span></div>`;
+  return `<div class="avatar${sz}" style="background:${teamColor(driver.team)}">
+    <span class="av-initials">${initials(driver.name)}</span>
+    <img class="av-photo" src="${photoUrl(driver)}" alt="" loading="lazy">
+    <span class="flag">${driver.flag}</span></div>`;
 }
 
 function renderFamily() {
   const el = $('#familyContent');
   if (state.members.length === 0) {
-    el.innerHTML = `<div class="empty-state"><h3>No picks yet</h3>
-      <p>Tap "Picks" below to add family members and assign drivers.<br>Then come back here on race day.</p>
+    el.innerHTML = `<div class="empty-state"><h3>No teams yet</h3>
+      <p>Tap "Picks" below to add teams and choose drivers.<br>Then come back here on race day.</p>
       <button class="btn brick" onclick="setView('setup')">Set Up Picks</button></div>`;
     return;
   }
@@ -1554,7 +1655,7 @@ function renderPickRow(carNum) {
   const cur = getCurrentPos(carNum); const pos = cur ? cur.position : '—';
   const change = cur && driver.startPos ? driver.startPos - cur.position : 0;
   const isOut = cur && /(out|dnf|retired)/i.test(cur.status || '');
-  return `<div class="pick-row" data-car="${driver.num}">
+  return `<div class="pick-row" data-car="${driver.num}" style="border-left:3px solid ${teamColor(driver.team)}">
     <div class="p-pos ${isOut ? 'dnf' : ''}">P${pos}</div>
     ${avatarHtml(driver, 'small')}
     <div class="p-name"><span class="p-flag">${driver.flag}</span>${escapeHtml(driver.name)}</div>
@@ -1573,17 +1674,33 @@ function renderLeaderboard() {
   const pickedBy = {};
   state.members.forEach(m => m.picks.forEach(num => { (pickedBy[num] = pickedBy[num] || []).push(m.name); }));
 
-  el.innerHTML = allDrivers.map(d => {
+  // team spotlight selector
+  let focus = state.members.find(m => m.id === state.focusTeam) || null;
+  if (state.focusTeam && !focus) state.focusTeam = null;
+  const focusSet = focus ? new Set(focus.picks) : null;
+  let chipsHtml = '';
+  if (state.members.length) {
+    chipsHtml = `<div class="lb-teams">
+      <button class="lb-team-chip ${!focus ? 'active' : ''}" data-focus="">All</button>
+      ${state.members.map(m => `<button class="lb-team-chip ${focus && focus.id === m.id ? 'active' : ''}" data-focus="${m.id}">${escapeHtml(m.name)}</button>`).join('')}
+    </div>${focus ? `<div class="lb-focus-note">Spotlighting <strong>${escapeHtml(focus.name)}</strong>'s drivers</div>` : ''}`;
+  }
+
+  const now = Date.now();
+  el.innerHTML = chipsHtml + allDrivers.map(d => {
     const change = d.startPos - d.currentPos; const owners = pickedBy[d.num];
     const isOut = /(out|dnf|retired)/i.test(d.status || ''); const inPit = /pit/i.test(d.status || '');
     const isLeader = d.currentPos === 1 && state.race.status === 'in';
-    return `<div class="driver-row ${owners ? 'is-pick' : ''} ${isOut ? 'out' : ''} ${isLeader ? 'leader' : ''}" data-car="${d.num}">
+    const fl = state.flash[d.num];
+    const flashCls = fl && now < fl.until ? (fl.dir === 'up' ? 'flash-up' : 'flash-down') : '';
+    const focusCls = focusSet ? (focusSet.has(d.num) ? 'tinted' : 'dimmed') : '';
+    return `<div class="driver-row ${owners ? 'is-pick' : ''} ${isOut ? 'out' : ''} ${isLeader ? 'leader' : ''} ${flashCls} ${focusCls}" data-car="${d.num}">
       <div class="pos ${d.currentPos <= 3 ? 'top3' : ''}">${d.currentPos}
         ${change !== 0 ? `<div class="pos-change ${change > 0 ? 'up' : 'down'}">${change > 0 ? '▲' + change : '▼' + Math.abs(change)}</div>` : ''}</div>
       ${avatarHtml(d)}
       <div class="driver-info">
         <div class="driver-name">${escapeHtml(d.name)} ${d.indyWins.length > 0 ? `<span title="${d.indyWins.length}× Indy 500 winner" style="color:var(--gold)">${'★'.repeat(Math.min(d.indyWins.length, 4))}</span>` : ''}</div>
-        <div class="driver-team">#${d.num} · ${escapeHtml(d.team)}</div>
+        <div class="driver-team"><span class="team-dot" style="background:${teamColor(d.team)}"></span>#${d.num} · ${escapeHtml(d.team)}${sponsorOf(d.num) ? ' · ' + escapeHtml(sponsorOf(d.num)) : ''}</div>
       </div>
       <div class="driver-meta">
         ${d.gap ? `<div class="gap">${escapeHtml(String(d.gap))}</div>` : `<div class="gap">P${d.startPos}</div>`}
@@ -1598,7 +1715,7 @@ function renderSetup() {
   if (state.members.length === 0) {
     list.innerHTML = `<div class="empty-state">
       <h3>The Field of 33</h3>
-      <p>Add your family below 👇 then each person picks <strong>exactly 3 drivers</strong>
+      <p>Add a team below 👇 then each team picks <strong>exactly 3 drivers</strong>
       from the 11 rows of 3 — just like the real Indy 500 starting grid.</p></div>`;
     return;
   }
@@ -1607,6 +1724,29 @@ function renderSetup() {
     const done = n === 3;
     const statusCls = done ? 'ok' : 'under';
     const statusText = done ? '✓ All 3 in — saved' : `${n} of 3 chosen`;
+
+    // COLLAPSED summary: complete members fold down to a tidy row of 3 chips
+    if (done && !expandedMembers.has(m.id)) {
+      const chips = m.picks.map(num => {
+        const d = driverByCar(num); if (!d) return '';
+        const sp = sponsorOf(num);
+        return `<div class="cpick" style="border-left-color:${teamColor(d.team)}">
+          ${avatarHtml(d, 'small')}
+          <div class="cp-meta">
+            <div class="cp-name">${escapeHtml(shortName(d.name))}</div>
+            <div class="cp-sub">#${num}${sp ? ' · ' + escapeHtml(sp) : ''}</div>
+          </div></div>`;
+      }).join('');
+      return `<div class="member-edit-card done collapsed">
+        <div class="member-edit-head">
+          <div class="name">${escapeHtml(m.name)}</div>
+          <div class="pick-status ok">✓ 3 picks</div>
+          <button class="btn small ghost" data-remove-member="${m.id}">×</button>
+        </div>
+        <div class="collapsed-picks">${chips}</div>
+        <button class="btn small ghost edit-picks" data-edit="${m.id}">✎ Change drivers</button>
+      </div>`;
+    }
 
     // three pick slots
     const slots = [0, 1, 2].map(i => {
@@ -1745,6 +1885,10 @@ $('#membersList').addEventListener('click', async (e) => {
     showModal('Remove ' + (m ? m.name : 'member') + '?', 'Their picks will be cleared.', async () => { await api.removeMember(id); await refreshNow(); });
     return;
   }
+  // expand a collapsed member card to change their drivers
+  const editBtn = e.target.closest('[data-edit]');
+  if (editBtn) { playClick(); expandedMembers.add(editBtn.dataset.edit); renderSetup(); return; }
+
   // remove a single pick from a filled slot
   const slotX = e.target.closest('[data-slot-remove]');
   if (slotX) {
@@ -1777,7 +1921,7 @@ $('#membersList').addEventListener('click', async (e) => {
     const res = await api.setPicks(memberId, next);
     if (!res.ok) { showAlert(res.error || 'Could not save', 'brick'); return; }
     flashSaved();
-    if (!has && next.length === 3) { playFanfare(); }   // satisfying "all 3 in" moment
+    if (!has && next.length === 3) { playFanfare(); expandedMembers.delete(memberId); } // lock in + collapse
     await refreshNow();
   }
 });
@@ -1842,11 +1986,12 @@ function openDriverDetail(carNum) {
   const cur = getCurrentPos(carNum); const change = cur ? d.startPos - cur.position : 0;
   const owners = state.members.filter(m => m.picks.includes(carNum));
   $('#driverDetailCard').innerHTML = `
-    <div class="driver-detail-hero" style="--team-bg: ${teamColor(d.team)}">
+    <div class="driver-detail-hero" style="--team-bg:${teamColor(d.team)};--team-bg-2:${teamAccent(d.team)}">
       ${avatarHtml(d, 'big')}
       <div class="text"><div class="name">${escapeHtml(d.name)}</div>
         <div class="sub">${d.flag} ${escapeHtml(d.country)} · Car #${d.num}</div>
-        <div class="sub" style="margin-top:2px;">${escapeHtml(d.team)} · ${d.engine}</div></div>
+        <div class="sub" style="margin-top:2px;">${escapeHtml(d.team)} · ${d.engine}</div>
+        ${sponsorOf(d.num) ? `<div class="sub sponsor-tag">${escapeHtml(sponsorOf(d.num))}</div>` : ''}</div>
     </div>
     <div class="driver-detail-body">
       <div class="stat-grid">
@@ -1856,8 +2001,8 @@ function openDriverDetail(carNum) {
         <div class="stat ${d.indyWins.length > 0 ? 'gold' : ''}"><div class="label">Indy 500 Wins</div><div class="value">${d.indyWins.length || '—'}</div></div>
         <div class="stat"><div class="label">Win Years</div><div class="value small">${d.indyWins.length ? d.indyWins.join(', ') : '—'}</div></div>
       </div>
-      ${owners.length > 0 ? `<div class="pickers-row">Picked by:<span class="pickers-names">${escapeHtml(owners.map(o => o.name).join(', '))}</span></div>`
-        : `<div class="pickers-row">Not picked by any Gilbert yet.</div>`}
+      ${owners.length > 0 ? `<div class="pickers-row">On teams:<span class="pickers-names">${escapeHtml(owners.map(o => o.name).join(', '))}</span></div>`
+        : `<div class="pickers-row">Not on any team yet.</div>`}
       <div style="display:flex;justify-content:flex-end;margin-top:14px;"><button class="btn primary" onclick="closeDriverDetail()">Close</button></div>
     </div>`;
   $('#driverDetailModal').classList.add('show');
@@ -1865,10 +2010,27 @@ function openDriverDetail(carNum) {
 function closeDriverDetail() { $('#driverDetailModal').classList.remove('show'); }
 window.closeDriverDetail = closeDriverDetail;
 $('#driverDetailModal').addEventListener('click', (e) => { if (e.target.id === 'driverDetailModal') closeDriverDetail(); });
+// leaderboard team spotlight chips
+$('#leaderboardContent').addEventListener('click', (e) => {
+  const chip = e.target.closest('[data-focus]');
+  if (chip) {
+    playClick();
+    state.focusTeam = chip.dataset.focus || null;
+    try { localStorage.setItem('brickyard:focusTeam', state.focusTeam || ''); } catch {}
+    renderLeaderboard();
+  }
+});
 document.addEventListener('click', (e) => {
+  if (e.target.closest('[data-focus]')) return; // handled above; don't open detail
   const row = e.target.closest('.driver-row[data-car], .pick-row[data-car]');
   if (row) { playClick(); openDriverDetail(row.dataset.car); }
 });
+// If a headshot can't load (e.g. offline preview), drop it so the
+// team-coloured monogram underneath shows instead. (capture: error doesn't bubble)
+document.addEventListener('error', (e) => {
+  const t = e.target;
+  if (t && t.classList && t.classList.contains('av-photo')) t.remove();
+}, true);
 
 // Mute
 const MUTE_KEY = 'brickyard:muted';
@@ -1882,6 +2044,7 @@ $('#muteBtn').addEventListener('click', () => {
 // ============================================================
 async function boot() {
   try { state.muted = localStorage.getItem(MUTE_KEY) === '1'; } catch {}
+  try { state.focusTeam = localStorage.getItem('brickyard:focusTeam') || null; } catch {}
   $('#muteIcon').textContent = state.muted ? '🔇' : '🔊';
   if (adminPin()) { /* keep hidden until they re-unlock */ }
   // Probe for the Azure backend; if it doesn't answer with our JSON API,

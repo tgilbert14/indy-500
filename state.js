@@ -96,7 +96,7 @@ export function addMember(name) {
   name = String(name || '').trim().slice(0, 24);
   if (!name) return { error: 'Name required' };
   if (state.members.some(m => m.name.toLowerCase() === name.toLowerCase())) {
-    return { error: 'That name already exists' };
+    return { error: 'That team name already exists' };
   }
   const member = { id: newId(), name, picks: [], createdAt: Date.now() };
   state.members.push(member);
