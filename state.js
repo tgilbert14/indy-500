@@ -180,6 +180,15 @@ export function setMode(mode) {
   if (!['sim', 'auto', 'manual'].includes(mode)) return { error: 'bad mode' };
   state.race.mode = mode;
   state.race.note = '';
+  // Clear any leftover race state (e.g. from Sim) so a fresh mode starts clean —
+  // shows the pre-race countdown until real data arrives.
+  if (mode === 'auto' || mode === 'manual') {
+    state.race.status = 'pre';
+    state.race.lap = 0;
+    state.race.flag = null;
+    state.race.positions = {};
+    state.race.source = mode === 'auto' ? 'scraper' : 'manual';
+  }
   bump();
   return { race: state.race };
 }
