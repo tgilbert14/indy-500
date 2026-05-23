@@ -1467,7 +1467,7 @@ try { gridView = localStorage.getItem('brickyard:gridView') || 'card'; } catch {
 // for the real thing.
 // ============================================================
 let USE_LOCAL = false;
-const LOCAL_DEMO_PIN = '1911';
+const LOCAL_DEMO_PIN = '12181990';
 const ADMIN_PIN_KEY = 'brickyard:adminpin';
 function adminPin() { try { return localStorage.getItem(ADMIN_PIN_KEY) || ''; } catch { return ''; } }
 
@@ -2252,17 +2252,17 @@ $('#resetAllBtn').addEventListener('click', async () => {
 // Admin unlock
 $('#adminBtn').addEventListener('click', promptAdmin);
 async function promptAdmin() {
-  const pin = await askPin(USE_LOCAL ? 'Race Control PIN (demo: 1911)' : 'Race Control PIN'); if (pin == null) return;
+  const pin = await askPin('Race Control PIN'); if (pin == null) return;
   try { localStorage.setItem(ADMIN_PIN_KEY, pin); } catch {}
   if (USE_LOCAL) {
-    if (String(pin) === LOCAL_DEMO_PIN) { state.admin = true; $('#adminTab').style.display = ''; setView('admin'); showAlert('Race Control unlocked (demo)', 'green'); }
-    else showAlert('Wrong PIN — the demo PIN is 1911', 'brick');
+    if (String(pin) === LOCAL_DEMO_PIN) { state.admin = true; $('#adminTab').style.display = ''; setView('admin'); showAlert('Race Control unlocked', 'green'); }
+    else showAlert("It's your birthday 🎂", 'brick');
     return;
   }
   // validate by attempting a no-op mode set to current mode
   api.setMode(state.race.mode).then(res => {
     if (res.ok) { state.admin = true; $('#adminTab').style.display = ''; setView('admin'); showAlert('Race Control unlocked', 'green'); }
-    else { showAlert('Wrong PIN', 'brick'); }
+    else { showAlert("It's your birthday 🎂", 'brick'); }
   });
 }
 $('#adminLockBtn').addEventListener('click', () => { state.admin = false; $('#adminTab').style.display = 'none'; setView('family'); });
