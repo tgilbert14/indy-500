@@ -121,15 +121,18 @@ export function setPicks(id, picks) {
 
   const clean = normalizePicks(picks);
 
-  // Allow saving an in-progress (under-3) selection so the UI can
-  // build up gradually, but flag it so the client can warn.
-  const complete = clean.length >= 3;
+  // The rule: each person picks EXACTLY 3 drivers.
+  if (clean.length > 3) return { error: 'Pick exactly 3 drivers — remove one first.' };
+
+  // Allow saving an in-progress (0–2) selection so the UI can build
+  // up gradually; only a full trio of 3 counts as "complete".
+  const complete = clean.length === 3;
 
   if (complete) {
     const key = setKey(clean);
-    const clash = state.members.find(m => m.id !== id && m.picks.length >= 3 && setKey(m.picks) === key);
+    const clash = state.members.find(m => m.id !== id && m.picks.length === 3 && setKey(m.picks) === key);
     if (clash) {
-      return { error: `Those are the exact same 3 as ${clash.name}. Swap at least one driver — overlap is fine, but no identical sets.` };
+      return { error: `That's the exact same trio as ${clash.name}. Swap at least one driver — overlap is fine, but no identical sets of 3.` };
     }
   }
 

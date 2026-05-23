@@ -491,12 +491,18 @@
   }
   .input:focus { outline: 2px solid var(--brick); outline-offset: -2px; }
 
-  .add-member-row {
+  /* sticky "+ Add person" bar, always reachable at the bottom */
+  .add-member-bar {
+    position: sticky;
+    bottom: 0;
     display: flex;
     gap: 8px;
-    margin-bottom: 16px;
+    padding: 12px 0 10px;
+    margin-top: 6px;
+    background: linear-gradient(to top, var(--cream) 70%, transparent);
+    z-index: 40;
   }
-  .add-member-row .input { flex: 1; }
+  .add-member-bar .input { flex: 1; }
 
   .member-edit-card {
     background: var(--paper);
@@ -523,83 +529,151 @@
     text-overflow: ellipsis;
     white-space: nowrap;
   }
-  .pick-count {
+  .pick-status {
     font-family: 'JetBrains Mono', monospace;
     font-size: 10px;
     font-weight: 700;
     color: var(--ink-2);
-    padding: 3px 7px;
+    padding: 4px 8px;
     border: 1px solid var(--rule-strong);
-    border-radius: 3px;
+    border-radius: 999px;
+    white-space: nowrap;
+    transition: all 0.2s;
   }
-  .pick-count.ok { color: var(--green); border-color: var(--green); }
-  .pick-count.under { color: var(--brick); border-color: var(--brick); }
+  .pick-status.under { color: var(--brick); border-color: var(--brick); }
+  .pick-status.ok {
+    color: white; background: var(--green); border-color: var(--green);
+    animation: pulseOnce 0.5s ease-out;
+  }
+  .member-edit-card.done { border-left: 4px solid var(--green); }
 
-  .driver-picker {
+  /* ---- the 3 pick slots ---- */
+  .pick-slots {
     display: grid;
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: repeat(3, 1fr);
     gap: 6px;
-    max-height: 320px;
-    overflow-y: auto;
-    padding: 6px;
-    background: var(--cream-2);
-    border-radius: 6px;
+    margin-bottom: 12px;
   }
-  .picker-driver {
+  .pick-slots.nudge { animation: nudge 0.4s; }
+  @keyframes nudge { 0%,100%{transform:translateX(0);} 25%{transform:translateX(-4px);} 75%{transform:translateX(4px);} }
+  .slot {
+    border-radius: 7px;
+    min-height: 52px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 6px;
+    font-size: 12px;
+    text-align: center;
+    position: relative;
+  }
+  .slot.empty {
+    border: 1.5px dashed var(--rule-strong);
+    color: var(--ink-2);
+    font-family: 'Big Shoulders Display', sans-serif;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+  .slot.filled {
+    border: 1.5px solid var(--ink);
+    background: linear-gradient(135deg, var(--gold) 0%, #F2C94C 100%);
+    box-shadow: 0 2px 0 var(--ink);
+    cursor: pointer;
+    flex-direction: column;
+    gap: 2px;
+  }
+  .slot.filled .s-name { font-weight: 800; font-size: 11.5px; line-height: 1.05; }
+  .slot.filled .s-car  { font-family: 'JetBrains Mono', monospace; font-size: 9px; font-weight: 700; color: rgba(0,0,0,0.6); }
+  .slot.filled .s-x {
+    position: absolute; top: -7px; right: -7px;
+    width: 20px; height: 20px; border-radius: 50%;
+    background: var(--ink); color: var(--cream);
+    font-size: 12px; font-weight: 800; line-height: 18px; border: 1.5px solid var(--cream);
+  }
+
+  /* ---- the Field of 33: 11 rows of 3 ---- */
+  .grid-hint {
+    font-size: 10px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase;
+    color: var(--ink-2); margin: 2px 0 6px;
+  }
+  .driver-grid {
     display: grid;
-    grid-template-columns: 28px 1fr;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 5px;
+    padding: 8px;
+    background: var(--cream-2);
+    border-radius: 8px;
+    background-image: repeating-linear-gradient(0deg, transparent 0 56px, rgba(20,17,14,0.05) 56px 57px);
+  }
+  .grid-car {
+    display: grid;
+    grid-template-columns: 26px 1fr;
     align-items: center;
     gap: 6px;
-    padding: 8px;
+    padding: 7px 6px;
     background: var(--paper);
     border: 1.5px solid transparent;
-    border-radius: 5px;
+    border-radius: 6px;
     cursor: pointer;
-    font-size: 12px;
     text-align: left;
     color: var(--ink);
-    transition: transform 0.1s, border-color 0.15s;
-    min-height: 44px;
+    transition: transform 0.1s, border-color 0.15s, opacity 0.15s;
+    min-height: 46px;
   }
-  .picker-driver:active { transform: scale(0.96); }
-  .picker-driver:hover { border-color: var(--ink); }
-  .picker-driver.selected {
+  .grid-car:active { transform: scale(0.95); }
+  .grid-car.selected {
     background: linear-gradient(135deg, var(--gold) 0%, #F2C94C 100%);
     border-color: var(--ink);
     box-shadow: 0 2px 0 var(--ink);
   }
-  .picker-driver .pp {
+  .grid-car.capped { opacity: 0.4; }
+  .grid-car .gp {
     font-family: 'JetBrains Mono', monospace;
-    font-weight: 800;
-    font-size: 13px;
-    color: var(--ink);
-    text-align: center;
-    background: var(--cream-2);
-    border-radius: 4px;
-    padding: 4px 0;
+    font-weight: 800; font-size: 12px; color: var(--ink);
+    text-align: center; background: var(--cream-2); border-radius: 4px; padding: 4px 0;
   }
-  .picker-driver.selected .pp { background: rgba(0,0,0,0.15); }
-  .picker-driver .pn-wrap {
-    min-width: 0;
-    display: flex;
-    flex-direction: column;
-    gap: 1px;
+  .grid-car.selected .gp { background: rgba(0,0,0,0.18); }
+  .grid-car .gn-wrap { min-width: 0; display: flex; flex-direction: column; gap: 1px; position: relative; }
+  .grid-car .gn { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 700; font-size: 11.5px; line-height: 1.15; }
+  .grid-car .gn-sub { font-family: 'JetBrains Mono', monospace; font-size: 9px; color: var(--ink-2); font-weight: 600; }
+  .grid-car.selected .gn-sub { color: rgba(0,0,0,0.6); }
+  .grid-car .slot-badge {
+    position: absolute; top: -2px; right: 0;
+    background: var(--ink); color: var(--cream);
+    font-family: 'JetBrains Mono', monospace; font-size: 9px; font-weight: 800;
+    border-radius: 8px; padding: 0 5px; line-height: 14px;
   }
-  .picker-driver .pn {
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    font-weight: 700;
-    font-size: 11.5px;
-    line-height: 1.15;
+  .card-foot { font-size: 10px; color: var(--ink-2); text-align: center; margin-top: 10px; }
+
+  /* ---- transient "Saved ✓" chip ---- */
+  .saved-chip {
+    position: fixed; top: 70px; left: 50%;
+    transform: translateX(-50%) translateY(-8px);
+    background: var(--green); color: white; font-weight: 800; font-size: 12px;
+    padding: 6px 14px; border-radius: 999px; z-index: 150; opacity: 0;
+    pointer-events: none; transition: opacity 0.2s, transform 0.2s; box-shadow: 0 4px 12px rgba(0,0,0,0.2);
   }
-  .picker-driver .pn-sub {
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 9px;
+  .saved-chip.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+  /* ---- Indy 500 fun-fact ticker ---- */
+  .fact-ticker {
+    background: var(--paper);
+    border: 1px solid var(--rule);
+    border-left: 3px solid var(--gold);
+    border-radius: 6px;
+    padding: 9px 12px;
+    margin-bottom: 12px;
+    font-size: 12px;
+    line-height: 1.4;
     color: var(--ink-2);
-    font-weight: 600;
   }
-  .picker-driver.selected .pn-sub { color: rgba(0,0,0,0.6); }
+  .fact-ticker b { color: var(--brick); font-family: 'Big Shoulders Display', sans-serif; letter-spacing: 0.04em; }
+  .winner-banner {
+    margin-top: 6px; font-size: 12px; font-weight: 700; color: var(--green);
+    display: flex; align-items: center; gap: 6px;
+  }
 
   /* ============ ALERTS ============ */
   .alerts-stack {
@@ -903,7 +977,7 @@
 <header class="header">
   <div class="header-top">
     <div class="brand">
-      <span class="small">Sponsored by Gilbert Racing</span>
+      <span class="small">The Greatest Spectacle in Racing</span>
       The Brickyard
     </div>
     <div class="header-controls">
@@ -943,24 +1017,20 @@
 <!-- ============ SETUP VIEW ============ -->
 <main class="view" id="view-setup">
   <p class="setup-intro">
-    Add each family member, then tap to pick <strong>3 or more</strong> drivers. Two people can share
-    drivers — but <strong>no two people can pick the exact same set</strong>, so make at least one swap.
-    Everyone edits the same shared board, so set up from any phone.
+    Add each family member, then pick <strong>exactly 3 drivers</strong> from the Field of 33.
+    Two people can share a driver — but no two people can have the <strong>same trio</strong>.
+    Everyone edits the same shared board, so you can set up from any phone. Picks save themselves.
   </p>
-
-  <div class="add-member-row">
-    <input type="text" class="input" id="newMemberName" placeholder="Add family member (e.g., Mom)" maxlength="20">
-    <button class="btn primary" id="addMemberBtn">Add</button>
-  </div>
 
   <div id="membersList"></div>
 
-  <div style="margin-top: 20px; text-align: center;">
-    <button class="btn ghost small" id="resetAllBtn">Reset everything</button>
+  <div class="add-member-bar">
+    <input type="text" class="input" id="newMemberName" placeholder="Add a family member…" maxlength="20">
+    <button class="btn primary" id="addMemberBtn">+ Add person</button>
   </div>
 
   <p class="footer-note" id="footerNote">
-    Loading data source…
+    Loading data source… · <a href="#" id="resetAllBtn" style="color:var(--brick);font-weight:700;">Reset everything</a>
   </p>
 </main>
 
@@ -1093,6 +1163,24 @@ const RACE_START = new Date('2026-05-24T16:45:00Z').getTime(); // ~12:45 PM ET g
 const CLIENT_POLL_MS = 8000;
 
 // ============================================================
+// INDY 500 LORE — rotating "Did you know?" facts (pre-race)
+// ============================================================
+const INDY_FACTS = [
+  'The 33-car field starts in 11 rows of three — the only race that lines up this way.',
+  "It's 200 laps around a 2.5-mile oval: exactly 500 miles.",
+  'The winner chugs a bottle of milk in Victory Lane — a tradition since Louis Meyer in 1936.',
+  "Drivers pre-select their victory milk: whole, 2%, or skim.",
+  'The track is "The Brickyard" — once paved with 3.2 million bricks. A one-yard strip still marks the start/finish line.',
+  'Winners (and teams) famously kneel to "kiss the bricks."',
+  'The Borg-Warner Trophy carries a sculpted face of every winner since 1911.',
+  '"Back Home Again in Indiana" has been sung before the race since 1946.',
+  'The most famous words in motorsport: "Drivers, start your engines!"',
+  "It's called The Greatest Spectacle in Racing — and run every Memorial Day weekend.",
+  'The winner is draped in a wreath of 33 orchids — one for every starter.',
+];
+let factIdx = Math.floor(Math.random() * INDY_FACTS.length);
+
+// ============================================================
 // APP STATE
 // ============================================================
 const state = {
@@ -1159,7 +1247,7 @@ const LocalBackend = (() => {
     getState: async () => ({ members: st.members, race: st.race, rev: st.rev }),
     addMember: async (name) => { name = String(name || '').trim().slice(0, 24); if (!name) return { ok: false, error: 'Name required' }; if (st.members.some(m => m.name.toLowerCase() === name.toLowerCase())) return { ok: false, error: 'That name already exists' }; const member = { id: nid(), name, picks: [] }; st.members.push(member); bump(); return { ok: true, member }; },
     removeMember: async (id) => { st.members = st.members.filter(m => m.id !== id); bump(); },
-    setPicks: async (id, picks) => { const m = st.members.find(x => x.id === id); if (!m) return { ok: false, status: 404, error: 'Unknown member' }; const clean = norm(picks); if (clean.length >= 3) { const k = key(clean); const clash = st.members.find(x => x.id !== id && x.picks.length >= 3 && key(x.picks) === k); if (clash) return { ok: false, status: 409, error: `Those are the exact same ${clean.length} as ${clash.name}. Swap at least one driver — overlap is fine, but no identical sets.` }; } m.picks = clean; bump(); return { ok: true, status: 200, member: m, complete: clean.length >= 3 }; },
+    setPicks: async (id, picks) => { const m = st.members.find(x => x.id === id); if (!m) return { ok: false, status: 404, error: 'Unknown member' }; const clean = norm(picks); if (clean.length > 3) return { ok: false, status: 400, error: 'Pick exactly 3 drivers — remove one first.' }; if (clean.length === 3) { const k = key(clean); const clash = st.members.find(x => x.id !== id && x.picks.length === 3 && key(x.picks) === k); if (clash) return { ok: false, status: 409, error: `That's the exact same trio as ${clash.name}. Swap at least one driver — overlap is fine, but no identical sets of 3.` }; } m.picks = clean; bump(); return { ok: true, status: 200, member: m, complete: clean.length === 3 }; },
     setMode: async (mode) => { if (!['sim', 'auto', 'manual'].includes(mode)) return { ok: false, error: 'bad mode' }; st.race.mode = mode; if (mode === 'sim') { simReset(); st.race.status = 'in'; st.race.note = 'On-device demo race running.'; } else if (mode === 'auto') { st.race.note = 'Auto live-scraping needs the deployed Azure server — use Sim or Manual in this on-device demo.'; } else { st.race.note = 'Manual scoring (on-device demo).'; } bump(); return { ok: true, race: st.race }; },
     pushRace: async (p) => { if (Array.isArray(p.order)) { const positions = {}; p.order.forEach((num, i) => { positions[String(num)] = { pos: i + 1, laps: st.race.lap, gap: i === 0 ? '—' : null, status: 'on track' }; }); st.race.positions = positions; } if (p.lap != null) st.race.lap = +p.lap; if (p.status) st.race.status = p.status; if (p.flag !== undefined) st.race.flag = p.flag; st.race.source = 'manual'; bump(); return { ok: true, race: st.race }; },
     resetAll: async () => { st = fresh(); save(); }
@@ -1434,18 +1522,20 @@ function renderFamily() {
   scored.sort((a, b) => a.avg - b.avg);
   const bestAvg = scored[0]?.avg;
 
-  let countdownHtml = '';
+  let topHtml = '';
   if (state.race.status === 'pre') {
     const diff = RACE_START - Date.now();
     if (diff > 0) {
       const days = Math.floor(diff / 86400000), hours = Math.floor((diff % 86400000) / 3600000), mins = Math.floor((diff % 3600000) / 60000);
       let time; if (days >= 1) time = `${days}d ${hours}h ${mins}m`; else if (hours >= 1) time = `${hours}h ${mins}m`; else time = `${mins}m`;
-      countdownHtml = `<div class="countdown-banner"><div class="label">Green Flag In</div><div class="time">${time}</div></div>`;
+      topHtml = `<div class="countdown-banner"><div class="label">Green Flag In</div><div class="time">${time}</div></div>`;
     }
+    topHtml += `<div class="fact-ticker"><b>Did you know?</b> ${INDY_FACTS[factIdx % INDY_FACTS.length]}</div>`;
   }
 
-  el.innerHTML = countdownHtml + scored.map(m => {
-    const isWinning = m.avg === bestAvg && state.members.length > 1 && state.race.status !== 'pre' && m.picks.length >= 3;
+  el.innerHTML = topHtml + scored.map(m => {
+    const isWinning = m.avg === bestAvg && state.members.length > 1 && state.race.status !== 'pre' && m.picks.length === 3;
+    const isChamp = isWinning && state.race.status === 'post';
     return `<div class="family-card ${isWinning ? 'best' : ''}">
       <div class="family-header">
         <div class="family-name">${isWinning ? '<span class="crown">👑</span>' : ''}${escapeHtml(m.name)}</div>
@@ -1453,7 +1543,9 @@ function renderFamily() {
       </div>
       <div class="pick-list">
         ${m.picks.map(num => renderPickRow(num)).join('') || '<div style="font-size:12px;color:var(--ink-2);padding:4px 8px;">No drivers picked yet</div>'}
-      </div></div>`;
+      </div>
+      ${isChamp ? `<div class="winner-banner">🏆 Winner's Circle — milk's on the house 🥛 · kiss the bricks 😘</div>` : ''}
+    </div>`;
   }).join('');
 }
 
@@ -1503,26 +1595,69 @@ function renderLeaderboard() {
 
 function renderSetup() {
   const list = $('#membersList');
-  if (state.members.length === 0) { list.innerHTML = '<div class="empty-state"><p>Add at least one family member to begin.</p></div>'; return; }
+  if (state.members.length === 0) {
+    list.innerHTML = `<div class="empty-state">
+      <h3>The Field of 33</h3>
+      <p>Add your family below 👇 then each person picks <strong>exactly 3 drivers</strong>
+      from the 11 rows of 3 — just like the real Indy 500 starting grid.</p></div>`;
+    return;
+  }
   list.innerHTML = state.members.map(m => {
-    const pickCount = m.picks.length; const status = pickCount >= 3 ? 'ok' : 'under';
-    return `<div class="member-edit-card">
+    const n = m.picks.length;
+    const done = n === 3;
+    const statusCls = done ? 'ok' : 'under';
+    const statusText = done ? '✓ All 3 in — saved' : `${n} of 3 chosen`;
+
+    // three pick slots
+    const slots = [0, 1, 2].map(i => {
+      const num = m.picks[i];
+      if (num) {
+        const d = driverByCar(num);
+        return `<div class="slot filled" data-slot-remove="${m.id}" data-car="${num}">
+          <span class="s-name">${d ? d.flag + ' ' + escapeHtml(d.name.split(' ').slice(-1)[0]) : '#' + num}</span>
+          <span class="s-car">#${num}</span>
+          <span class="s-x">×</span></div>`;
+      }
+      return `<div class="slot empty">Pick ${i + 1}</div>`;
+    }).join('');
+
+    // the field of 33 in 11 rows of 3 (ordered by start position)
+    const grid = STARTING_GRID.map(d => {
+      const sel = m.picks.includes(d.num);
+      const slotNo = m.picks.indexOf(d.num) + 1;
+      const capped = !sel && n >= 3;
+      const winStars = d.indyWins.length > 0 ? ' ★'.repeat(Math.min(d.indyWins.length, 4)) : '';
+      return `<button class="grid-car ${sel ? 'selected' : ''} ${capped ? 'capped' : ''}" data-member="${m.id}" data-car="${d.num}">
+        <span class="gp">${d.startPos}</span>
+        <span class="gn-wrap">
+          ${sel ? `<span class="slot-badge">${slotNo}</span>` : ''}
+          <span class="gn">${d.flag} ${escapeHtml(shortName(d.name))}${winStars}</span>
+          <span class="gn-sub">#${d.num} · ${escapeHtml(shortTeam(d.team))}</span>
+        </span></button>`;
+    }).join('');
+
+    return `<div class="member-edit-card ${done ? 'done' : ''}">
       <div class="member-edit-head">
         <div class="name">${escapeHtml(m.name)}</div>
-        <div class="pick-count ${status}">${pickCount} / 3+</div>
+        <div class="pick-status ${statusCls}">${statusText}</div>
         <button class="btn small ghost" data-remove-member="${m.id}">×</button>
       </div>
-      <div class="driver-picker">
-        ${STARTING_GRID.map(d => {
-          const isMine = m.picks.includes(d.num);
-          const winStars = d.indyWins.length > 0 ? ' ★'.repeat(Math.min(d.indyWins.length, 4)) : '';
-          return `<button class="picker-driver ${isMine ? 'selected' : ''}" data-member="${m.id}" data-car="${d.num}">
-            <span class="pp">${d.startPos}</span>
-            <span class="pn-wrap"><span class="pn">${d.flag} ${escapeHtml(shortName(d.name))}${winStars}</span>
-            <span class="pn-sub">#${d.num} · ${escapeHtml(shortTeam(d.team))}</span></span></button>`;
-        }).join('')}
-      </div></div>`;
+      <div class="pick-slots">${slots}</div>
+      <div class="grid-hint">${done ? 'Tap a chosen driver to swap one out' : 'The Field of 33 — tap to pick'}</div>
+      <div class="driver-grid">${grid}</div>
+      <div class="card-foot">Auto-saves to the shared board — no save button needed.</div>
+    </div>`;
   }).join('');
+}
+
+let savedChipTimer = null;
+function flashSaved() {
+  let chip = $('#savedChip');
+  if (!chip) { chip = document.createElement('div'); chip.id = 'savedChip'; chip.className = 'saved-chip'; document.body.appendChild(chip); }
+  chip.textContent = 'Saved ✓';
+  chip.classList.add('show');
+  clearTimeout(savedChipTimer);
+  savedChipTimer = setTimeout(() => chip.classList.remove('show'), 1100);
 }
 
 function shortName(full) { const p = full.split(' '); return p.length <= 1 ? full : p[0][0] + '. ' + p.slice(1).join(' '); }
@@ -1610,14 +1745,39 @@ $('#membersList').addEventListener('click', async (e) => {
     showModal('Remove ' + (m ? m.name : 'member') + '?', 'Their picks will be cleared.', async () => { await api.removeMember(id); await refreshNow(); });
     return;
   }
-  const picker = e.target.closest('.picker-driver');
-  if (picker) {
+  // remove a single pick from a filled slot
+  const slotX = e.target.closest('[data-slot-remove]');
+  if (slotX) {
     playClick();
-    const memberId = picker.dataset.member, carNum = picker.dataset.car;
+    const memberId = slotX.dataset.slotRemove, carNum = slotX.dataset.car;
     const m = state.members.find(x => x.id === memberId); if (!m) return;
-    const next = m.picks.includes(carNum) ? m.picks.filter(c => c !== carNum) : [...m.picks, carNum];
+    const res = await api.setPicks(memberId, m.picks.filter(c => c !== carNum));
+    if (res.ok) { flashSaved(); await refreshNow(); }
+    return;
+  }
+
+  // tap a car in the field of 33
+  const car = e.target.closest('.grid-car');
+  if (car) {
+    const memberId = car.dataset.member, carNum = car.dataset.car;
+    const m = state.members.find(x => x.id === memberId); if (!m) return;
+    const has = m.picks.includes(carNum);
+
+    if (!has && m.picks.length >= 3) {
+      // at capacity — guide a swap instead of silently ignoring
+      playSadHorn();
+      showAlert("That's 3! Tap a chosen driver to swap one out.", 'brick');
+      const slotsEl = car.closest('.member-edit-card').querySelector('.pick-slots');
+      if (slotsEl) { slotsEl.classList.remove('nudge'); void slotsEl.offsetWidth; slotsEl.classList.add('nudge'); }
+      return;
+    }
+
+    playClick();
+    const next = has ? m.picks.filter(c => c !== carNum) : [...m.picks, carNum];
     const res = await api.setPicks(memberId, next);
     if (!res.ok) { showAlert(res.error || 'Could not save', 'brick'); return; }
+    flashSaved();
+    if (!has && next.length === 3) { playFanfare(); }   // satisfying "all 3 in" moment
     await refreshNow();
   }
 });
@@ -1737,6 +1897,8 @@ async function boot() {
   render();
   poll();
   setInterval(() => { if (state.race.status === 'pre') { syncStatusUI(); if (state.view === 'family') renderFamily(); } }, 60000);
+  // rotate the fun-fact ticker
+  setInterval(() => { if (state.race.status === 'pre' && state.view === 'family') { factIdx++; renderFamily(); } }, 9000);
 }
 boot();
 </script>
