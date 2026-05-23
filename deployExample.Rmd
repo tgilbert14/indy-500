@@ -1,0 +1,46 @@
+---
+title: "deployExample"
+author: "Timothy Gilbert"
+date: "2026-05-23"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Deploy (step 5) in bash terminal
+```{r cars}
+cd "/d/Git/indy 500"
+RG=indy500-rg; ACR=indy500acr21798; APP=gilberts-indy500-29833; SA=indy500sa31630
+export MSYS_NO_PATHCONV=1
+
+# 1) rebuild the image with the newest code
+az acr build -t indy500:latest -r $ACR .
+
+# 2) recreate the container so it pulls the new image (picks persist on the share)
+SAKEY=$(az storage account keys list -n $SA -g $RG --query "[0].value" -o tsv)
+ACR_PWD=$(az acr credential show -n $ACR --query "passwords[0].value" -o tsv)
+az container delete -g $RG -n indy500app --yes
+az container create -g $RG -n indy500app \
+  --image $ACR.azurecr.io/indy500:latest \
+  --registry-login-server $ACR.azurecr.io \
+  --registry-username $ACR --registry-password "$ACR_PWD" \
+  --os-type Linux --cpu 1 --memory 2 \
+  --ports 80 --ip-address Public --dns-name-label $APP \
+  --environment-variables ADMIN_PIN=1699 DATA_DIR=/home/data PORT=80 \
+  --azure-file-volume-account-name $SA --azure-file-volume-account-key "$SAKEY" \
+  --azure-file-volume-share-name picks --azure-file-volume-mount-path /home/data
+
+az container show -g $RG -n indy500app --query "ipAddress.fqdn" -o tsv
+```
+
+## Including Plots
+
+You can also embed plots, for example:
+
+```{r pressure, echo=FALSE}
+plot(pressure)
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
