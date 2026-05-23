@@ -35,6 +35,7 @@
     --gold: #F0B53C;
     --rule: rgba(255, 255, 255, 0.13);
     --rule-strong: rgba(255, 255, 255, 0.42);
+    --checker: rgba(255, 255, 255, 0.045);
   }
   html, body { transition: background-color 0.25s ease, color 0.25s ease; }
 
@@ -45,13 +46,17 @@
     color: var(--ink);
     font-family: 'Manrope', -apple-system, sans-serif;
     -webkit-font-smoothing: antialiased;
-    overscroll-behavior: none;
+    overscroll-behavior-y: none;   /* no rubber-band chaining, but vertical scroll works */
   }
 
   body {
+    overflow-x: clip;              /* block sideways scroll without breaking vertical scroll */
+    /* faint checkered-flag texture + brand glows */
     background-image:
+      repeating-conic-gradient(var(--checker, rgba(120,110,95,0.05)) 0% 25%, transparent 0% 50%),
       radial-gradient(circle at 20% 0%, rgba(177, 26, 36, 0.04) 0%, transparent 50%),
       radial-gradient(circle at 80% 100%, rgba(230, 168, 46, 0.06) 0%, transparent 50%);
+    background-size: 26px 26px, 100% 100%, 100% 100%;
     min-height: 100vh;
     max-width: 720px;
     margin: 0 auto;
@@ -397,6 +402,11 @@
     letter-spacing: 0.04em;
     text-transform: uppercase;
     margin-top: 2px;
+    max-width: 120px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    vertical-align: bottom;
   }
   .tag.pit { background: var(--yellow-flag); color: var(--ink); }
   .tag.out { background: var(--ink-2); color: var(--cream); }
@@ -513,26 +523,30 @@
   }
   .input:focus { outline: 2px solid var(--brick); outline-offset: -2px; }
 
-  /* sticky "+ Add person" bar, always reachable at the bottom */
+  /* "+ Add team" bar, sits above the team list */
   .add-member-bar {
-    position: sticky;
-    bottom: 0;
     display: flex;
     gap: 8px;
-    padding: 12px 0 10px;
-    margin-top: 6px;
-    background: linear-gradient(to top, var(--cream) 70%, transparent);
-    z-index: 40;
+    margin-bottom: 14px;
   }
   .add-member-bar .input { flex: 1; }
 
+  /* team cards pack 2-per-row to limit scrolling; the one being edited spans full width */
+  #membersList {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 10px;
+    align-items: start;
+  }
   .member-edit-card {
     background: var(--paper);
     border: 1.5px solid var(--ink);
     border-radius: 8px;
     padding: 12px;
-    margin-bottom: 10px;
+    min-width: 0;
   }
+  .member-edit-card.editing { grid-column: 1 / -1; }
+  #membersList .empty-state { grid-column: 1 / -1; }
   .member-edit-head {
     display: flex;
     justify-content: space-between;
@@ -572,7 +586,7 @@
   /* ---- the 3 pick slots ---- */
   .pick-slots {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 6px;
     margin-bottom: 12px;
   }
@@ -619,22 +633,69 @@
   .grid-hint {
     font-size: 10px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase;
     color: var(--ink-2); margin: 2px 0 6px;
+    display: flex; align-items: center; justify-content: space-between; gap: 8px;
   }
+  .view-toggle {
+    font-size: 10px; padding: 4px 9px; letter-spacing: 0.02em; text-transform: none;
+    border-radius: 999px; flex-shrink: 0;
+  }
+  .view-seg { display: inline-flex; flex-shrink: 0; border: 1.5px solid var(--ink); border-radius: 999px; overflow: hidden; }
+  .view-seg .seg {
+    border: none; background: var(--paper); color: var(--ink); cursor: pointer;
+    font-size: 13px; line-height: 1; padding: 5px 9px; border-right: 1px solid var(--rule);
+  }
+  .view-seg .seg:last-child { border-right: none; }
+  .view-seg .seg.on { background: var(--ink); }
   .driver-grid {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 5px;
     padding: 8px;
     background: var(--cream-2);
     border-radius: 8px;
-    background-image: repeating-linear-gradient(0deg, transparent 0 56px, rgba(20,17,14,0.05) 56px 57px);
+    background-image: repeating-linear-gradient(0deg, transparent 0 86px, rgba(20,17,14,0.05) 86px 87px);
   }
+  .driver-grid.color-view { grid-template-columns: repeat(2, minmax(0, 1fr)); background-image: none; }
+  .driver-grid.card-view { grid-template-columns: 1fr; gap: 8px; background-image: none; }
+  /* rich card cell: car livery + driver photo on team colours */
+  .grid-car.cardv {
+    flex-direction: row; align-items: center; justify-content: flex-start; gap: 8px;
+    min-height: 84px; padding: 8px 10px; color: #fff; border-color: rgba(0,0,0,0.35);
+    overflow: hidden; background: linear-gradient(135deg, var(--tc) 0%, var(--ta) 100%);
+  }
+  .grid-car.cardv .cardv-torso { height: 72px; width: auto; max-width: 58px; object-fit: contain; object-position: bottom; flex-shrink: 0; z-index: 1; }
+  .grid-car.cardv .cardv-info { display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 1; z-index: 1; }
+  .grid-car.cardv .cardv-name { font-weight: 800; font-size: 14px; line-height: 1.1; text-shadow: 0 1px 3px rgba(0,0,0,0.55); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .grid-car.cardv .cardv-sub { font-size: 10px; font-weight: 600; opacity: 0.95; text-shadow: 0 1px 2px rgba(0,0,0,0.5); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .grid-car.cardv .cardv-qual { font-family: 'JetBrains Mono', monospace; font-size: 10px; font-weight: 700; opacity: 0.95; text-shadow: 0 1px 2px rgba(0,0,0,0.5); }
+  .grid-car.cardv .cardv-car { height: 52px; width: auto; max-width: 40%; object-fit: contain; flex-shrink: 0; filter: drop-shadow(0 2px 3px rgba(0,0,0,0.35)); }
+  .grid-car.cardv.selected { box-shadow: 0 0 0 3px var(--gold), 0 2px 0 var(--ink); }
+  .grid-car.cardv.capped { opacity: 0.45; }
+  .grid-car.cardv .gc-info { background: rgba(255,255,255,0.92); }
+  .grid-car.cardv .slot-badge { background: var(--gold); color: var(--ink); }
+  /* colorful driver cells: team-coloured background w/ headshot, name, team, sponsor */
+  .grid-car.cv {
+    display: flex; flex-direction: row; align-items: center; justify-content: flex-start;
+    gap: 8px; text-align: left; min-height: 58px; color: #fff; border-color: rgba(0,0,0,0.35);
+    background: linear-gradient(135deg, var(--tc) 0%, var(--ta) 100%);
+  }
+  .grid-car.cv .avatar { box-shadow: inset 0 0 0 2px rgba(255,255,255,0.5); }
+  .grid-car.cv .cv-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 1; }
+  .grid-car.cv .cv-name { font-weight: 800; font-size: 12.5px; line-height: 1.1; text-shadow: 0 1px 2px rgba(0,0,0,0.45); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .grid-car.cv .cv-sub { font-size: 9px; font-weight: 600; opacity: 0.95; line-height: 1.15; text-shadow: 0 1px 2px rgba(0,0,0,0.4); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .grid-car.cv.selected { box-shadow: 0 0 0 3px var(--gold), 0 2px 0 var(--ink); }
+  .grid-car.cv.capped { opacity: 0.42; }
+  .grid-car.cv .gc-info { background: rgba(255,255,255,0.92); }
+  .grid-car.cv .slot-badge { background: var(--gold); color: var(--ink); }
   .grid-car {
-    display: grid;
-    grid-template-columns: 26px 1fr;
-    align-items: center;
-    gap: 6px;
-    padding: 7px 6px;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: center;
+    gap: 2px;
+    position: relative;
+    min-width: 0;
+    padding: 8px 9px;
     background: var(--paper);
     border: 1.5px solid transparent;
     border-radius: 6px;
@@ -642,7 +703,7 @@
     text-align: left;
     color: var(--ink);
     transition: transform 0.1s, border-color 0.15s, opacity 0.15s;
-    min-height: 46px;
+    min-height: 76px;
   }
   .grid-car:active { transform: scale(0.95); }
   .grid-car.selected {
@@ -651,15 +712,21 @@
     box-shadow: 0 2px 0 var(--ink);
   }
   .grid-car.capped { opacity: 0.4; }
+  /* start position: faint centered background watermark */
   .grid-car .gp {
-    font-family: 'JetBrains Mono', monospace;
-    font-weight: 800; font-size: 12px; color: var(--ink);
-    text-align: center; background: var(--cream-2); border-radius: 4px; padding: 4px 0;
+    position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+    pointer-events: none; z-index: 0;
+    font-family: 'JetBrains Mono', monospace; font-weight: 900; font-size: 30px;
+    color: var(--ink); opacity: 0.10; line-height: 1;
   }
-  .grid-car.selected .gp { background: rgba(0,0,0,0.18); }
-  .grid-car .gn-wrap { min-width: 0; display: flex; flex-direction: column; gap: 1px; position: relative; }
-  .grid-car .gn { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 700; font-size: 11.5px; line-height: 1.15; }
-  .grid-car .gn-sub { font-family: 'JetBrains Mono', monospace; font-size: 9px; color: var(--ink-2); font-weight: 600; }
+  .grid-car.selected .gp { opacity: 0.20; }
+  .grid-car .gn-wrap { min-width: 0; width: 100%; display: flex; flex-direction: column; gap: 2px; position: relative; z-index: 1; }
+  .grid-car .gn {
+    font-weight: 700; font-size: 12px; line-height: 1.15;
+    display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+    overflow: hidden; overflow-wrap: anywhere;
+  }
+  .grid-car .gn-sub { font-family: 'JetBrains Mono', monospace; font-size: 9.5px; color: var(--ink-2); font-weight: 600; line-height: 1.2; overflow-wrap: anywhere; }
   .grid-car.selected .gn-sub { color: rgba(0,0,0,0.6); }
   .grid-car .slot-badge {
     position: absolute; top: -2px; right: 0;
@@ -681,7 +748,7 @@
 
   /* ---- collapsed member summary (3 picks locked in) ---- */
   .member-edit-card.collapsed { border-left: 4px solid var(--green); }
-  .collapsed-picks { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-bottom: 10px; }
+  .collapsed-picks { display: grid; grid-template-columns: 1fr; gap: 5px; margin-bottom: 10px; }
   .cpick {
     display: flex; align-items: center; gap: 7px;
     background: var(--cream-2); border-left: 3px solid var(--ink-2);
@@ -1138,12 +1205,12 @@
     so you can set up from any phone. Picks save themselves.
   </p>
 
-  <div id="membersList"></div>
-
   <div class="add-member-bar">
     <input type="text" class="input" id="newMemberName" placeholder="Team name (e.g., Dad's Dream Team)…" maxlength="22">
     <button class="btn primary" id="addMemberBtn">+ Add team</button>
   </div>
+
+  <div id="membersList"></div>
 
   <p class="footer-note" id="footerNote">
     Loading data source… · <a href="#" id="resetAllBtn" style="color:var(--brick);font-weight:700;">Reset everything</a>
@@ -1211,6 +1278,17 @@
   <div class="driver-detail" id="driverDetailCard"></div>
 </div>
 
+<div class="modal-backdrop" id="pinModal">
+  <div class="modal">
+    <h3 id="pinTitle">Enter PIN</h3>
+    <input type="tel" inputmode="numeric" autocomplete="off" class="input" id="pinInput" placeholder="PIN" style="margin-bottom:14px;">
+    <div class="modal-actions">
+      <button class="btn ghost" id="pinCancel">Cancel</button>
+      <button class="btn brick" id="pinOk">Unlock</button>
+    </div>
+  </div>
+</div>
+
 <script>
 'use strict';
 
@@ -1262,6 +1340,28 @@ const QUAL = {
   '77': 226.572, '4': 230.539, '24': 229.207
 };
 function qualOf(num) { return QUAL[String(num)] || null; }
+
+// Exact 2026 Indy 500 car-livery image filenames (sponsor slugs vary, so these
+// are pulled verbatim from indycar.com's starting-grid page).
+const CAR_LIVERY = {
+  '10': '10-DHL-SS.png', '20': '20-JavaHouse-SS.png', '12': '12-Verizon-SS.png',
+  '60': '60-SiriusXM-MorganWallen-SS.png', '14': '14-HFOT-SS.png', '5': '5-Arrow-SS.png',
+  '8': '8-Sunoco-SS.png', '23': '23-Kingspan-SS.png', '3': '3-Pennzoil-SS.png',
+  '9': '9-PNCBank-SS.png', '76': '76-Wedbush-SS.png', '75': '75-Amada-SS.png',
+  '33': '33-Slimfast-SS.png', '06': '06-Cliffs-SS.png', '21': '21-Splenda-SS.png',
+  '66': '66-ACURA-SS.png', '28': '28-Phoenix-SS.png', '7': '7-Velo-SS.png',
+  '26': '26-TWGAI-SS.png', '6': '6-NTTDATA-SS.png', '45': '45-Droplight-SS.png',
+  '31': '31-PrizePicks-SS.png', '2': '2-Shell-SS.png', '18': '18-BMAX-SS.png',
+  '27': '27-SamsClub-SS.png', '11': '11-elf-SS.png', '47': '47-Wurth-SS.png',
+  '15': '15-UnitedRentals-SS.png', '19': '19-Nammo-SS.png', '51': '51-TexasRoadhouse-SS.png',
+  '77': '77-Goodheart-SS.png', '4': '4-Combitrans-SS.png', '24': '24-INVST-SS.png'
+};
+const CARS_BASE = 'https://www.indycar.com/-/media/IndyCar/Cars/2026/IndyCar-Series/Liveries/Indy500/';
+function carImgUrl(num) { const f = CAR_LIVERY[String(num)]; return f ? CARS_BASE + f : ''; }
+function torsoUrl(d) {
+  const slug = d.name.replace(/[^A-Za-z]/g, '');
+  return `https://www.indycar.com/-/media/IndyCar/Drivers/IndyCar-Series/SmallTorso/${slug}.png`;
+}
 
 // Official IndyCar headshot URL (loads on the live site; falls back to a
 // team-coloured monogram if it can't load — e.g. in the offline preview).
@@ -1352,6 +1452,9 @@ const state = {
 
 // which member cards are expanded for editing (3-pick cards collapse by default)
 const expandedMembers = new Set();
+// driver-grid view: 'card' (livery + photo, default), 'compact' (position + name), or 'color'
+let gridView = 'card';
+try { gridView = localStorage.getItem('brickyard:gridView') || 'card'; } catch {}
 
 // ============================================================
 // API LAYER
@@ -1839,13 +1942,14 @@ function renderSetup() {
       from the 11 rows of 3 — just like the real Indy 500 starting grid.</p></div>`;
     return;
   }
-  list.innerHTML = state.members.map(m => {
+  const sortedMembers = [...state.members].sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }));
+  list.innerHTML = sortedMembers.map(m => {
     const n = m.picks.length;
     const done = n === 3;
     const statusCls = done ? 'ok' : 'under';
     const statusText = done ? '✓ All 3 in — saved' : `${n} of 3 chosen`;
 
-    // COLLAPSED summary: complete members fold down to a tidy row of 3 chips
+    // COLLAPSED summary: complete members fold down to a tidy stack of their 3 drivers
     if (done && !expandedMembers.has(m.id)) {
       const chips = m.picks.map(num => {
         const d = driverByCar(num); if (!d) return '';
@@ -1881,30 +1985,62 @@ function renderSetup() {
       return `<div class="slot empty">Pick ${i + 1}</div>`;
     }).join('');
 
-    // the field of 33 in 11 rows of 3 (ordered by start position)
+    // the field of 33 in starting order — three selectable layouts
+    const view = gridView;
     const grid = STARTING_GRID.map(d => {
       const sel = m.picks.includes(d.num);
       const slotNo = m.picks.indexOf(d.num) + 1;
       const capped = !sel && n >= 3;
       const winStars = d.indyWins.length > 0 ? ' ★'.repeat(Math.min(d.indyWins.length, 4)) : '';
-      return `<button class="grid-car ${sel ? 'selected' : ''} ${capped ? 'capped' : ''}" data-member="${m.id}" data-car="${d.num}">
+      const badge = sel ? `<span class="slot-badge">${slotNo}</span>` : `<span class="gc-info" data-info="${d.num}" title="View ${escapeHtml(d.name)}'s profile">i</span>`;
+      const cls = `grid-car ${sel ? 'selected' : ''} ${capped ? 'capped' : ''}`;
+      const teamStyle = `style="--tc:${teamColor(d.team)};--ta:${teamAccent(d.team)}"`;
+      const sp = sponsorOf(d.num);
+      if (view === 'card') {
+        // rich card: car livery + driver photo (load on the live site; team colour fallback otherwise)
+        return `<button class="${cls} cardv" ${teamStyle} data-member="${m.id}" data-car="${d.num}">
+          ${badge}
+          <img class="cardv-torso ext-img" src="${torsoUrl(d)}" alt="" loading="lazy">
+          <span class="cardv-info">
+            <span class="cardv-name">${d.flag} ${escapeHtml(d.name)}${winStars}</span>
+            <span class="cardv-sub">#${d.num} · ${escapeHtml(shortTeam(d.team))}${sp ? ' · ' + escapeHtml(sp) : ''}</span>
+            <span class="cardv-qual">P${d.startPos}${qualOf(d.num) ? ' · ' + qualOf(d.num).toFixed(3) + ' mph' : ''}</span>
+          </span>
+          <img class="cardv-car ext-img" src="${carImgUrl(d.num)}" alt="" loading="lazy">
+        </button>`;
+      }
+      if (view === 'color') {
+        return `<button class="${cls} cv" ${teamStyle} data-member="${m.id}" data-car="${d.num}">
+          ${badge}
+          ${avatarHtml(d, 'small')}
+          <span class="cv-text">
+            <span class="cv-name">${d.flag} ${escapeHtml(shortName(d.name))}${winStars}</span>
+            <span class="cv-sub">#${d.num} · ${escapeHtml(shortTeam(d.team))}${sp ? ' · ' + escapeHtml(sp) : ''}</span>
+          </span></button>`;
+      }
+      return `<button class="${cls}" data-member="${m.id}" data-car="${d.num}">
         <span class="gp">${d.startPos}</span>
+        ${badge}
         <span class="gn-wrap">
-          ${sel ? `<span class="slot-badge">${slotNo}</span>` : `<span class="gc-info" data-info="${d.num}" title="View ${escapeHtml(d.name)}'s profile">i</span>`}
           <span class="gn">${d.flag} ${escapeHtml(shortName(d.name))}${winStars}</span>
           <span class="gn-sub">#${d.num} · ${escapeHtml(shortTeam(d.team))}</span>
         </span></button>`;
     }).join('');
 
-    return `<div class="member-edit-card ${done ? 'done' : ''}">
+    const gridCls = view === 'card' ? 'card-view' : view === 'color' ? 'color-view' : '';
+    const seg = (v, label) => `<button class="seg ${view === v ? 'on' : ''}" data-set-view="${v}">${label}</button>`;
+    return `<div class="member-edit-card editing ${done ? 'done' : ''}">
       <div class="member-edit-head">
         <div class="name">${escapeHtml(m.name)}</div>
         <div class="pick-status ${statusCls}">${statusText}</div>
         <button class="btn small ghost" data-remove-member="${m.id}">×</button>
       </div>
       <div class="pick-slots">${slots}</div>
-      <div class="grid-hint">${done ? 'Tap a chosen driver to swap one out' : 'The Field of 33 — tap to pick'}</div>
-      <div class="driver-grid">${grid}</div>
+      <div class="grid-hint">
+        <span>${done ? 'Tap a driver to swap' : 'Field of 33 — tap to pick'}</span>
+        <span class="view-seg">${seg('card', '🃏')}${seg('compact', '≣')}${seg('color', '🎨')}</span>
+      </div>
+      <div class="driver-grid ${gridCls}">${grid}</div>
       <div class="card-foot">Auto-saves to the shared board — no save button needed.</div>
     </div>`;
   }).join('');
@@ -1991,14 +2127,30 @@ $$('.tab').forEach(t => t.addEventListener('click', () => { if (t.dataset.view =
 $('#addMemberBtn').addEventListener('click', addMember);
 $('#newMemberName').addEventListener('keydown', e => { if (e.key === 'Enter') addMember(); });
 
+// ---- in-app PIN box (works everywhere, incl. sandboxed previews where native prompt() is blocked) ----
+function askPin(title) {
+  return new Promise(resolve => {
+    $('#pinTitle').textContent = title;
+    const inp = $('#pinInput'); inp.value = '';
+    $('#pinModal').classList.add('show');
+    setTimeout(() => { try { inp.focus(); } catch {} }, 50);
+    const ok = $('#pinOk'), cancel = $('#pinCancel'), backdrop = $('#pinModal');
+    const finish = (val) => { backdrop.classList.remove('show'); ok.onclick = cancel.onclick = inp.onkeydown = backdrop.onclick = null; resolve(val); };
+    ok.onclick = () => finish(inp.value);
+    cancel.onclick = () => finish(null);
+    inp.onkeydown = (e) => { if (e.key === 'Enter') finish(inp.value); };
+    backdrop.onclick = (e) => { if (e.target === backdrop) finish(null); };
+  });
+}
+
 // ---- team editing is gated behind a PIN so only people who know it can add/edit teams ----
 const TEAM_PIN = '2026';
 const TEAM_UNLOCK_KEY = 'brickyard:teamsUnlocked';
 let teamsUnlocked = false;
 try { teamsUnlocked = localStorage.getItem(TEAM_UNLOCK_KEY) === '1'; } catch {}
-function ensureTeamAccess() {
+async function requireTeamPin() {
   if (teamsUnlocked) return true;
-  const pin = prompt('Enter the team PIN to add or edit teams:');
+  const pin = await askPin('Enter the team PIN to add or edit teams');
   if (pin == null) return false;
   if (String(pin).trim() === TEAM_PIN) {
     teamsUnlocked = true;
@@ -2012,7 +2164,7 @@ function ensureTeamAccess() {
 
 async function addMember() {
   const inp = $('#newMemberName'); const name = inp.value.trim(); if (!name) return;
-  if (!ensureTeamAccess()) return;
+  if (!(await requireTeamPin())) return;
   const res = await api.addMember(name);
   if (!res.ok) { showAlert(res.error || 'Could not add', 'brick'); return; }
   inp.value = ''; await refreshNow();
@@ -2023,9 +2175,19 @@ $('#membersList').addEventListener('click', async (e) => {
   const info = e.target.closest('[data-info]');
   if (info) { playClick(); openDriverDetail(info.dataset.info); return; }
 
+  // switching the grid view is just a display preference (no PIN)
+  const vt = e.target.closest('[data-set-view]');
+  if (vt) {
+    playClick();
+    gridView = vt.dataset.setView;
+    try { localStorage.setItem('brickyard:gridView', gridView); } catch {}
+    renderSetup();
+    return;
+  }
+
   // every other action here edits teams — require the team PIN first
   if (e.target.closest('[data-remove-member],[data-edit],[data-slot-remove],.grid-car')) {
-    if (!ensureTeamAccess()) return;
+    if (!(await requireTeamPin())) return;
   }
 
   const removeBtn = e.target.closest('[data-remove-member]');
@@ -2071,20 +2233,26 @@ $('#membersList').addEventListener('click', async (e) => {
     const res = await api.setPicks(memberId, next);
     if (!res.ok) { showAlert(res.error || 'Could not save', 'brick'); return; }
     flashSaved();
-    if (!has && next.length === 3) { playFanfare(); expandedMembers.delete(memberId); } // lock in + collapse
+    if (!has && next.length === 3) {
+      // team complete — celebrate!
+      playFanfare();
+      fireConfetti();
+      showAlert(`🏁 ${m.name} is locked in! Good luck! 🏆`, 'green');
+      expandedMembers.delete(memberId); // collapse the finished card
+    }
     await refreshNow();
   }
 });
 
-$('#resetAllBtn').addEventListener('click', () => {
-  if (!ensureTeamAccess()) return;
+$('#resetAllBtn').addEventListener('click', async () => {
+  if (!(await requireTeamPin())) return;
   showModal('Reset everything?', 'This deletes all teams and picks for everyone. Cannot be undone.', async () => { await api.resetAll(); await refreshNow(); });
 });
 
 // Admin unlock
 $('#adminBtn').addEventListener('click', promptAdmin);
-function promptAdmin() {
-  const pin = prompt(USE_LOCAL ? 'Race Control PIN (demo PIN is 1911):' : 'Race Control PIN:'); if (pin == null) return;
+async function promptAdmin() {
+  const pin = await askPin(USE_LOCAL ? 'Race Control PIN (demo: 1911)' : 'Race Control PIN'); if (pin == null) return;
   try { localStorage.setItem(ADMIN_PIN_KEY, pin); } catch {}
   if (USE_LOCAL) {
     if (String(pin) === LOCAL_DEMO_PIN) { state.admin = true; $('#adminTab').style.display = ''; setView('admin'); showAlert('Race Control unlocked (demo)', 'green'); }
@@ -2181,7 +2349,7 @@ document.addEventListener('click', (e) => {
 // team-coloured monogram underneath shows instead. (capture: error doesn't bubble)
 document.addEventListener('error', (e) => {
   const t = e.target;
-  if (t && t.classList && t.classList.contains('av-photo')) t.remove();
+  if (t && t.classList && (t.classList.contains('av-photo') || t.classList.contains('ext-img'))) t.remove();
 }, true);
 
 // Mute

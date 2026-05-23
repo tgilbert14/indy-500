@@ -25,19 +25,51 @@ live in that window's memory.
 
 ## 1. Update the app for the new year (do this first)
 
-In `public/index.html`, update the data near the top of the `<script>`:
+Everything that changes year-to-year lives near the top of the `<script>` in
+`public/index.html`. Update these data tables — order matters less than getting
+all of them. **Best time to do this: the Monday after qualifying weekend**, once the
+official starting grid, qualifying speeds, and Indy 500 liveries are published.
 
-- **`STARTING_GRID`** — the 33 drivers in qualifying order (start pos, car #, name, team, engine, flag, country, `indyWins`).
-- **`SPONSORS`** — car # → primary sponsor.
-- **`QUAL`** — car # → 4-lap qualifying speed (mph).
-- **`TEAM_COLORS`** — add any new teams (primary + accent hex).
-- **`RACE_START`** in the script (the green-flag time, used for the countdown).
+### Data tables to update (all in `public/index.html`)
 
-PINs:
-- **Team PIN** (add/edit teams) is `TEAM_PIN` in `public/index.html` — currently `2026`.
-- **Race Control PIN** is the `ADMIN_PIN` env var, set at deploy time in step 4 — currently `1699`.
+| Constant | What it is | Where to get it |
+|---|---|---|
+| `STARTING_GRID` | The 33 drivers **in qualifying order** — `{startPos, num, name, team, engine, flag, country, indyWins}` | indycar.com starting-grid page + Wikipedia "<year> Indianapolis 500" |
+| `QUAL` | car # → 4-lap qualifying speed (mph) | RacingNews365 / indycar.com qualifying results (cross-check 2 sources) |
+| `SPONSORS` | car # → primary sponsor (used in profiles + cells) | Wikipedia entry-list "sponsor" column |
+| `CAR_LIVERY` | car # → **exact** livery image filename, e.g. `10-DHL-SS.png` | **Must copy verbatim** from the indycar.com starting-grid page (sponsor slugs are unguessable — `06-Cliffs`, `66-ACURA`, `60-SiriusXM-MorganWallen`, `11-elf`) |
+| `TEAM_COLORS` | team → `{primary, accent}` hex; add any new teams | teamcolorcodes.com / team sites |
+| `RACE_START` | green-flag date/time (UTC) for the countdown | indycar schedule (Indy 500 is Memorial Day Sunday, green ≈ 12:45 PM ET) |
+| `indyWins` (inside `STARTING_GRID`) | years each driver has won the Indy 500 | Wikipedia list of Indy 500 winners |
 
-Commit your changes (optional but recommended): `git add -A && git commit -m "Update for <year> Indy 500" && git push`
+### Driver/car images (no table — built from name + car #)
+
+These come straight off indycar.com's Sitecore CDN and are hotlinkable. The helper
+functions `photoUrl()`, `torsoUrl()`, and `carImgUrl()` build them:
+
+- **Headshot (profile card):** `…/Drivers/IndyCar-Series/Hero/<Slug>.jpg`
+- **Torso (card view):** `…/Drivers/IndyCar-Series/SmallTorso/<Slug>.png`
+- **Car livery (card view):** `…/Cars/<year>/IndyCar-Series/Liveries/Indy500/<file from CAR_LIVERY>`
+
+`<Slug>` = driver's full name with spaces/apostrophes/hyphens/accents removed,
+PascalCase, internal capitals kept (e.g. `PatoOWard`, `RinusVeeKay`, `ScottMcLaughlin`,
+`RyanHunterReay`). **Update the year** in `CARS_BASE` (currently `.../Cars/2026/...`).
+If an image 404s for a driver, the app automatically falls back to a team-colour
+monogram, so a wrong slug degrades gracefully rather than breaking.
+
+> Tip: the fastest way to refresh `CAR_LIVERY` is to open the indycar.com starting-grid
+> page, View Source, and copy each `…/Liveries/Indy500/<num>-…-SS.png` filename.
+
+### PINs
+
+- **Team PIN** (add/edit teams) — the `TEAM_PIN` constant in `public/index.html` (currently `2026`).
+- **Race Control PIN** — the `ADMIN_PIN` env var set at deploy time in step 4 (currently `1699`).
+
+### Verify locally (optional)
+
+`npm install && npm start`, open http://localhost:8080, switch the Picks view to
+**Card** and confirm photos/liveries load and names aren't cut off. Then commit:
+`git add -A && git commit -m "Update for <year> Indy 500" && git push`
 
 ---
 
